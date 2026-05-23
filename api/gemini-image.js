@@ -19,8 +19,8 @@ module.exports = async (req, res) => {
     const { prompt } = req.body;
 
     const models = [
-      'gemini-2.0-flash-preview-image-generation',
-      'gemini-2.0-flash-exp',
+      'gemini-2.0-flash-exp-image-generation',
+      'gemini-2.0-flash',
     ];
 
     for (const model of models) {
@@ -31,11 +31,15 @@ module.exports = async (req, res) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseModalities: ['IMAGE'] }
+            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
           }),
         });
 
-        if (!response.ok) continue;
+        if (!response.ok) {
+          const errText = await response.text();
+          console.error(`[gemini-image] model=${model} status=${response.status}`, errText);
+          continue;
+        }
         const data = await response.json();
         const parts = data?.candidates?.[0]?.content?.parts;
 
@@ -48,7 +52,11 @@ module.exports = async (req, res) => {
             }
           }
         }
-      } catch (e) { continue; }
+        console.error(`[gemini-image] model=${model} - no image in response`, JSON.stringify(data?.candidates?.[0]?.content));
+      } catch (e) {
+        console.error(`[gemini-image] model=${model} exception:`, e.message);
+        continue;
+      }
     }
 
     res.json({ imageUrl: null });
