@@ -1303,7 +1303,7 @@ async function generateImageWithGemini(keyword, cardTitle, fallbackSeed) {
   const fallback = `https://picsum.photos/seed/${fallbackSeed}/640/640`;
   try {
 
-    const prompt = `Cinematic background image, no text, no people faces. Topic: ${keyword}. Dark mood suitable for white text overlay.`;
+    const prompt = `Cinematic background image, no text, no human faces, no letters. ${keyword}. Dark atmospheric mood, dramatic lighting, suitable for white text overlay on Instagram card news.`;
     const res = await fetch('/api/gemini-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1422,15 +1422,19 @@ async function _doGenerate() {
       "num": 1,
       "title": "카드 제목 (15자 이내, 임팩트 있게)",
       "body": "카드 본문 (2~3줄, 핵심 내용만, 60자 이내)",
-      "imageKeyword": "영어 이미지 키워드 1~2단어"
+      "imagePrompt": "specific English image prompt reflecting card topic (5-8 keywords, comma-separated)"
     }
   ],
   "threads": "쓰레드 텍스트"
 }
 
-imageKeyword 규칙:
-- 각 카드의 분위기/내용에 어울리는 영어 단어 1~2개 (예: finance, technology, health, city, nature)
-- Unsplash 검색에 쓸 키워드
+imagePrompt 규칙:
+- 각 카드의 주제/핵심내용을 반영한 구체적인 영어 키워드 5~8개, 쉼표로 구분
+- 예시: "살 안 빠지는 이유" 주제 → "healthy food, diet, nutrition, weight loss concept, meal prep, vegetables, calorie deficit"
+- 예시: "금리 인상" 주제 → "interest rate, economy, financial chart, bank, money, recession, investment"
+- 예시: "AI 시대 직업" 주제 → "artificial intelligence, robot, future workspace, technology, automation, human and machine"
+- 배경 이미지용이므로 시각적으로 표현 가능한 개념 위주로, 단순 단어 나열 금지
+- 각 카드 내용에 맞게 서로 다른 키워드 사용 (모든 카드가 같은 키워드면 안 됨)
 
 카드 작성 규칙 (매우 중요):
 - 절대 뻔한 내용 쓰지 말 것. "규칙적인 식사가 중요합니다" 같은 당연한 말 금지
@@ -1511,12 +1515,12 @@ imageKeyword 규칙:
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         document.querySelector('.loading p').textContent = `AI 이미지 생성 중... (${i+1}/${cards.length})`;
-        const url = await generateImageWithGemini(card.imageKeyword || 'abstract', card.title, i * 41 + (i+1));
+        const url = await generateImageWithGemini(card.imagePrompt || card.imageKeyword || 'abstract', card.title, i * 41 + (i+1));
         if (url) { imageUrls[i] = url; card._imgs = [url]; }
       }
     } else if (imgSource === 'unsplash') {
       await Promise.all(cards.map(async (card, i) => {
-        const imgs = await fetchUnsplashImages(card.imageKeyword || 'abstract', i, 4);
+        const imgs = await fetchUnsplashImages(card.imagePrompt || card.imageKeyword || 'abstract', i, 4);
         if (imgs.length) imageUrls[i] = imgs[0];
         card._imgs = imgs;
       }));
