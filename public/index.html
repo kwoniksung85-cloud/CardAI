@@ -1380,8 +1380,6 @@ async function _doGenerate() {
   const errBox = document.getElementById('errorBox');
   errBox.className = 'error-box';
 
-  if (!apiKey) { showErr('API 키를 입력해주세요.'); return; }
-
   let topicText = '';
 
   if (mode === 'url') {
