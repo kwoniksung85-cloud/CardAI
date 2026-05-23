@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARD.AI — AI 카드뉴스 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;700;900&family=Space+Mono:wght@700&family=Gothic+A1:wght@700;900&family=Do+Hyeon&family=Black+Han+Sans&family=Nanum+Gothic:wght@700;800&family=Nanum+Myeongjo:wght@700;800&family=Jua&family=Hahmlet:wght@700;900&family=Song+Myung&family=Gaegu:wght@700&family=Hi+Melody&family=Single+Day&family=Gugi&family=Kirang+Haerang&family=Gamja+Flower&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f3ef;
+  --ink: #1a1a1a;
+  --muted: #888;
+  --border: #ddd;
+  --accent: #e84040;
+  --card-w: 320px;
+  --card-h: 320px;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+.wrap { max-width: 780px; margin: 0 auto; }
+
+/* PLAN TABS */
+.plan-tabs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.plan-tab {
+  background: #fff; border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 10px 8px;
+  cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; text-align: center;
+}
+.plan-tab:hover { border-color: var(--ink); }
+.plan-tab.active { border-color: var(--accent); background: #fff5f5; }
+.plan-tab .plan-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.plan-tab.active .plan-name { color: var(--accent); }
+.plan-tab .plan-desc { font-size: 10px; color: var(--muted); }
+.plan-tab:nth-child(3) .plan-name { color: #c47a00; }
+.plan-tab:nth-child(3).active { border-color: #c47a00; background: #fffbf0; }
+.plan-tab:nth-child(3).active .plan-name { color: #c47a00; }
+
+/* MODE TABS */
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 28px;
+  border-bottom: 2px solid var(--ink);
+}
+.mode-tab {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.mode-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.mode-tab:hover { color: var(--ink); }
+
+/* HEADER */
+.site-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 48px;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 16px;
+}
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.logo span { color: var(--accent); }
+.logo-sub {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* INPUT SECTION */
+.input-section {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.field input, .field textarea, .field select {
+  width: 100%;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--ink);
+}
+.field textarea { min-height: 80px; resize: none; line-height: 1.6; }
+
+.gen-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.2s, transform 0.1s;
+}
+.gen-btn:hover { background: #333; transform: translateY(-1px); }
+.gen-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+/* RESULTS */
+.results { display: none; }
+.results.show { display: block; }
+
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::after { content: ''; flex:1; height:1px; background: var(--border); }
+
+/* THEME TABS */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.tpl-btn {
+  background: #fff; border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 8px 6px 7px;
+  cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s; display: flex; flex-direction: column;
+  align-items: center; gap: 5px;
+}
+.tpl-btn span { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.3px; }
+.tpl-btn:hover { border-color: var(--ink); }
+.tpl-btn.active { border-color: var(--accent); background: #fff5f5; }
+.tpl-btn.active span { color: var(--accent); }
+.tpl-preview {
+  width: 52px; height: 52px; border-radius: 4px; overflow: hidden;
+}
+.tpl-minimal { background: #fff; border: 2px solid #1a1a1a; position: relative; }
+.tpl-minimal::before { content:''; position:absolute; left:0; top:0; width:3px; height:100%; background:#1a1a1a; }
+.tpl-colorful { background: linear-gradient(135deg, #1a1a2e, #e84040); }
+.tpl-newspaper { background: #f5f0e8; border: 2px solid #333; }
+.tpl-neon { background: #050510; border: 1px solid #00ffe0; }
+.tpl-pastel { background: linear-gradient(135deg, #fce4ec, #e8eaf6); }
+.tpl-magazine { background: linear-gradient(to bottom, #888 50%, #fff 50%); }
+.tpl-gradient { background: linear-gradient(135deg, #f093fb, #f5576c, #4facfe); }
+.tpl-allblack { background: #0a0a0a; }
+.tpl-retro { background: #f5e6c8; border: 3px double #8b6914; }
+.tpl-split { background: linear-gradient(to right, #e84040 50%, #fff 50%); }
+@media (max-width: 500px) {
+  .template-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+  .tpl-preview { width: 40px; height: 40px; }
+  .tpl-btn span { font-size: 9px; }
+}
+
+/* CARD VIEWER */
+.card-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.card-stage {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+}
+
+/* MINIMAL CARDS */
+.card-minimal {
+  width: var(--card-w);
+  height: var(--card-h);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px;
+  position: relative;
+  overflow: hidden;
+}
+.card-minimal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  background: var(--ink);
+}
+.card-minimal .card-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+.card-minimal .card-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: 16px;
+  word-break: keep-all;
+}
+.card-minimal .card-body {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #444;
+  word-break: keep-all;
+}
+.card-minimal .card-accent-line {
+  position: absolute;
+  bottom: 28px; right: 28px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: #ccc;
+  letter-spacing: 1px;
+}
+
+/* COLORFUL CARDS */
+.card-colorful {
+  width: var(--card-w);
+  height: var(--card-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.card-colorful-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.card-colorful > * { position: relative; z-index: 1; }
+.card-colorful .card-num {
+  position: absolute;
+  top: 24px; right: 24px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+.card-colorful .card-title {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  word-break: keep-all;
+}
+.card-colorful .card-body {
+  font-size: 12px;
+  line-height: 1.75;
+  opacity: 0.88;
+  word-break: keep-all;
+}
+
+/* CARD PALETTES */
+.palette-0 .card-colorful-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.palette-0 .card-colorful .card-title, .palette-0 .card-colorful .card-body, .palette-0 .card-colorful .card-num { color: #fff; }
+.palette-0 .card-colorful-bg::after { content:''; position:absolute; bottom:-40px; right:-40px; width:180px; height:180px; border-radius:50%; background:rgba(229,57,53,0.3); }
+
+.palette-1 .card-colorful-bg { background: linear-gradient(135deg, #f8f0e3 0%, #f5deb3 100%); }
+.palette-1 .card-colorful .card-title, .palette-1 .card-colorful .card-body, .palette-1 .card-colorful .card-num { color: #2d1b00; }
+.palette-1 .card-colorful-bg::after { content:''; position:absolute; top:-30px; left:-30px; width:150px; height:150px; border-radius:50%; background:rgba(210,140,60,0.25); }
+
+.palette-2 .card-colorful-bg { background: linear-gradient(160deg, #0d1117 0%, #1a2332 60%, #0d2137 100%); }
+.palette-2 .card-colorful .card-title, .palette-2 .card-colorful .card-body, .palette-2 .card-colorful .card-num { color: #e0f7fa; }
+.palette-2 .card-colorful-bg::after { content:''; position:absolute; top:20px; right:20px; width:100px; height:100px; background: radial-gradient(circle, rgba(0,229,255,0.4), transparent); border-radius:50%; }
+
+.palette-3 .card-colorful-bg { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+.palette-3 .card-colorful .card-title, .palette-3 .card-colorful .card-body, .palette-3 .card-colorful .card-num { color: #3e1f00; }
+
+.palette-4 .card-colorful-bg { background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%); }
+.palette-4 .card-colorful .card-title, .palette-4 .card-colorful .card-body, .palette-4 .card-colorful .card-num { color: #d8f3dc; }
+.palette-4 .card-colorful-bg::after { content:''; position:absolute; bottom:0; left:0; width:100%; height:3px; background:rgba(255,255,255,0.2); }
+
+/* CARD NAV */
+.card-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nav-arrow {
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.nav-arrow:hover { background: var(--ink); color: #fff; }
+.nav-arrow:disabled { border-color: var(--border); color: var(--border); cursor: not-allowed; background: #fff; }
+
+.card-dots { display: flex; gap: 6px; }
+.card-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
+}
+.card-dot.active { background: var(--ink); }
+
+/* DOWNLOAD BTN */
+.dl-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.dl-btn:hover { background: var(--ink); color: #fff; }
+
+/* THREADS */
+.threads-box {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  position: relative;
+  margin-bottom: 40px;
+}
+.threads-label {
+  position: absolute;
+  top: -10px; left: 16px;
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.threads-text {
+  font-size: 14.5px;
+  line-height: 2;
+  color: #222;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+.threads-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.copy-btn {
+  padding: 8px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover { border-color: var(--ink); }
+.copy-btn.done { border-color: #27ae60; color: #27ae60; }
+
+/* LOADING */
+.loading {
+  text-align: center;
+  padding: 60px 0;
+  display: none;
+}
+.loading.show { display: block; }
+.loading-ring {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading p { font-size: 13px; color: var(--muted); }
+
+/* ERROR */
+.error-box {
+  background: #fff0f0;
+  border: 1.5px solid #ffcccc;
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #c0392b;
+  display: none;
+}
+.error-box.show { display: block; }
+
+/* CARD RENDER */
+.card-render {
+  width: 320px; height: 320px;
+  position: relative; overflow: hidden;
+  flex-shrink: 0; border-radius: 4px;
+  box-sizing: border-box;
+}
+@media (max-width: 500px) {
+  .card-render { width: 280px; height: 280px; }
+}
+.cr-layer {
+  position: absolute; inset: 0;
+}
+.cr-content {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: flex-start;
+  padding: 28px; box-sizing: border-box;
+  z-index: 2;
+}
+.cr-bottom { justify-content: flex-end !important; }
+.cr-num {
+  font-family: monospace; font-size: 10px;
+  color: #aaa; letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+.cr-abs { position: absolute; z-index: 3; }
+.cr-title {
+  font-size: 20px; font-weight: 900;
+  line-height: 1.4; word-break: keep-all;
+  margin-bottom: 12px;
+}
+.cr-body {
+  font-size: 13px; line-height: 1.8;
+  word-break: keep-all;
+}
+.cr-badge {
+  position: absolute; bottom: 14px; right: 16px;
+  font-family: monospace; font-size: 9px;
+  letter-spacing: 1px; z-index: 3;
+}
+
+/* IMAGE SOURCE TABS */
+.img-source-tabs {
+  display: flex; gap: 0;
+  border: 1.5px solid var(--border); border-radius: 6px; overflow: hidden;
+}
+.img-src-tab {
+  flex: 1; padding: 9px 12px; font-size: 12px; font-weight: 700;
+  cursor: pointer; background: #fff; color: var(--muted);
+  border: none; font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s; letter-spacing: 0;
+}
+.img-src-tab.active { background: var(--ink); color: #fff; }
+
+/* IMAGE PICKER */
+.img-picker { margin-top: 10px; }
+.img-picker-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; display: block; }
+.img-options { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.img-option {
+  width: 60px; height: 60px; border-radius: 5px; object-fit: cover;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all 0.15s; opacity: 0.8;
+}
+.img-option:hover { opacity: 1; border-color: var(--ink); }
+.img-option.selected { border-color: var(--accent); opacity: 1; }
+.img-search-row { display: flex; gap: 6px; }
+.img-search-input {
+  flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 6px; font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px; color: var(--ink); padding: 7px 10px; outline: none;
+  transition: border-color 0.2s;
+}
+.img-search-input:focus { border-color: var(--ink); }
+.img-search-btn {
+  padding: 7px 14px; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 6px; font-size: 11px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; color: var(--ink);
+}
+.img-search-btn:hover { border-color: var(--ink); }
+.img-upload-btn {
+  width: 100%; margin-top: 7px;
+  padding: 7px 10px;
+  background: var(--bg); border: 1.5px dashed var(--border);
+  border-radius: 6px; font-size: 11px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif; cursor: pointer;
+  transition: all 0.15s; color: var(--muted); text-align: center;
+}
+.img-upload-btn:hover { border-color: var(--ink); color: var(--ink); }
+.img-file-input { display: none; }
+
+/* EDIT PANEL */
+.edit-panel {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.edit-panel-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.edit-panel-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.edit-card-row {
+  display: grid; grid-template-columns: 28px 1fr 1fr 180px; gap: 10px;
+  align-items: start; margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 640px) {
+  .edit-card-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .edit-card-num {
+    display: inline;
+    font-size: 12px;
+    margin-bottom: -4px;
+  }
+  .edit-card-row .img-picker { display: block; }
+  .img-options { gap: 5px; }
+  .img-option { width: 52px; height: 52px; }
+  .edit-card-row { padding-bottom: 20px; margin-bottom: 20px; }
+}
+.edit-card-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.edit-card-num {
+  font-family: monospace; font-size: 11px; color: var(--accent);
+  font-weight: 700; padding-top: 10px; text-align: center;
+}
+.edit-input {
+  width: 100%; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 6px;
+  font-family: 'Noto Sans KR', sans-serif; font-size: 12px;
+  color: var(--ink); padding: 8px 10px; outline: none;
+  transition: border-color 0.2s; resize: none;
+}
+.edit-input:focus { border-color: var(--ink); }
+.edit-title-input { font-weight: 700; }
+.apply-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px; background: var(--ink); color: #fff;
+  font-size: 12px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.15s; margin-top: 14px;
+}
+.apply-btn:hover { background: #333; }
+
+/* ZIP BUTTON */
+.zip-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px; background: #fff; color: var(--accent);
+  font-size: 12px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.zip-btn:hover { background: var(--accent); color: #fff; }
+.zip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.dl-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+@media (max-width: 500px) {
+  :root { --card-w: 280px; --card-h: 280px; }
+  .field-row { grid-template-columns: 1fr; }
+}
+
+/* ─── AUTH ─── */
+.auth-screen {
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh; padding:24px; background:var(--bg);
+}
+.auth-box {
+  background:#fff; border:1.5px solid var(--border);
+  border-radius:16px; padding:40px 36px; width:100%; max-width:420px;
+}
+.auth-logo { font-family:'Space Mono',monospace; font-size:22px; font-weight:700; letter-spacing:2px; margin-bottom:6px; }
+.auth-logo span { color:var(--accent); }
+.auth-tagline { font-size:12px; color:var(--muted); margin-bottom:32px; }
+.auth-tabs { display:flex; border-bottom:2px solid var(--border); margin-bottom:28px; }
+.auth-tab {
+  padding:8px 20px; font-size:13px; font-weight:700; cursor:pointer;
+  background:none; border:none; color:var(--muted); font-family:'Noto Sans KR',sans-serif;
+  border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .15s;
+}
+.auth-tab.active { color:var(--ink); border-bottom-color:var(--accent); }
+.auth-field { margin-bottom:16px; }
+.auth-field label {
+  display:block; font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted); margin-bottom:7px;
+}
+.auth-field input, .auth-field select {
+  width:100%; background:#f5f2ed; border:1.5px solid var(--border);
+  border-radius:8px; font-family:'Noto Sans KR',sans-serif;
+  font-size:14px; color:var(--ink); padding:11px 14px; outline:none; transition:border-color .2s;
+}
+.auth-field input:focus { border-color:var(--ink); }
+.plan-opts { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:6px; }
+.plan-opt {
+  border:1.5px solid var(--border); border-radius:8px; padding:10px 6px;
+  cursor:pointer; text-align:center; transition:all .15s; background:#fff;
+}
+.plan-opt:hover { border-color:var(--ink); }
+.plan-opt.sel { border-color:var(--accent); background:#fff5f5; }
+.plan-opt.gold.sel { border-color:#c47a00; background:#fffbf0; }
+.plan-opt .pn { font-size:12px; font-weight:700; }
+.plan-opt.sel .pn { color:var(--accent); }
+.plan-opt.gold.sel .pn { color:#c47a00; }
+.plan-opt .pd { font-size:10px; color:var(--muted); margin-top:2px; }
+.plan-opt .pp { font-size:11px; font-weight:700; margin-top:4px; }
+.auth-btn {
+  width:100%; padding:14px; background:var(--ink); color:#fff; border:none;
+  border-radius:8px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; transition:all .2s; margin-top:8px;
+}
+.auth-btn:hover { background:#333; }
+.auth-err { font-size:12px; color:var(--accent); margin-top:8px; text-align:center; min-height:18px; }
+.auth-hint { font-size:11px; color:var(--muted); text-align:center; margin-top:14px; line-height:1.6; }
+
+/* ─── NAV ─── */
+.app-nav {
+  background:#fff; border-bottom:1.5px solid var(--border);
+  padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.nav-logo { font-family:'Space Mono',monospace; font-size:17px; font-weight:700; letter-spacing:2px; }
+.nav-logo span { color:var(--accent); }
+.nav-right { display:flex; align-items:center; gap:12px; }
+.plan-badge {
+  font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:1px;
+}
+.badge-free { background:#f0f0f0; color:#666; }
+.badge-standard { background:#e8f0ff; color:#1a4ac8; }
+.badge-pro { background:#fff3e0; color:#c47a00; }
+.usage-wrap { font-size:11px; color:var(--muted); }
+.usage-bar { height:4px; background:var(--border); border-radius:2px; width:70px; margin-top:3px; overflow:hidden; }
+.usage-fill { height:100%; background:var(--accent); border-radius:2px; transition:width .3s; }
+.usage-fill.warn { background:#f0a500; }
+.nav-logout {
+  font-size:11px; color:var(--muted); background:none; border:1px solid var(--border);
+  border-radius:4px; padding:4px 9px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all .15s;
+}
+.nav-logout:hover { border-color:var(--ink); color:var(--ink); }
+
+/* ─── APP WRAPPER ─── */
+.app-screen { display:none; }
+.app-body { max-width:780px; margin:0 auto; padding:32px 20px 80px; }
+
+/* ─── UPGRADE ─── */
+.upgrade-banner {
+  background:linear-gradient(135deg,#fff5f5,#fff);
+  border:1.5px solid #ffcccc; border-radius:10px;
+  padding:16px 20px; margin-bottom:20px;
+  display:none; align-items:center; justify-content:space-between; gap:16px;
+}
+.upgrade-banner p { font-size:13px; line-height:1.6; }
+.upgrade-banner strong { color:var(--accent); }
+.upgrade-btn {
+  padding:8px 16px; background:var(--accent); color:#fff; border:none;
+  border-radius:6px; font-size:12px; font-weight:700; font-family:'Noto Sans KR',sans-serif;
+  cursor:pointer; white-space:nowrap; transition:all .15s; flex-shrink:0;
+}
+.upgrade-btn:hover { background:#c73520; }
+.modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+  z-index:200; align-items:center; justify-content:center; padding:20px;
+}
+.modal-box { background:#fff; border-radius:16px; padding:32px; max-width:400px; width:100%; }
+.modal-plan-row {
+  border:1.5px solid var(--border); border-radius:8px; padding:14px 16px;
+  cursor:pointer; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
+  transition:border-color .15s;
+}
+.modal-plan-row:hover { border-color:var(--ink); }
+.modal-plan-row.gold { border-color:#c47a00; background:#fffbf0; }
+
+/* ─── PLAN TABS IN FORM (hidden — plan controlled by nav) ─── */
+.plan-tabs, .plan-tab { display:none; }
+
+
+/* ─── BRAND KIT ─── */
+.brand-kit {
+  background: linear-gradient(135deg, #fffbf0, #fff);
+  border: 1.5px solid #f0c060;
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+  display: none;
+}
+.brand-kit.visible { display: block; }
+.brand-kit-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #c47a00;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.brand-kit-title::after { content: ''; flex:1; height:1px; background: #f0c060; }
+.brand-kit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.brand-field label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.color-row { display: flex; align-items: center; gap: 10px; }
+.color-input {
+  width: 40px; height: 36px; border: 1.5px solid var(--border);
+  border-radius: 6px; cursor: pointer; padding: 2px;
+  background: none;
+}
+.color-hex {
+  flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 6px; font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px; color: var(--ink); padding: 8px 10px; outline: none;
+}
+.logo-upload-area {
+  border: 1.5px dashed #f0c060; border-radius: 8px;
+  padding: 14px; text-align: center; cursor: pointer;
+  transition: all .15s; background: rgba(255,248,230,0.5);
+  position: relative;
+}
+.logo-upload-area:hover { border-color: #c47a00; background: rgba(255,248,230,0.8); }
+.logo-upload-area input { position: absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.logo-preview { width: 60px; height: 30px; object-fit: contain; margin: 0 auto 6px; display: block; }
+.logo-upload-text { font-size: 11px; color: #c47a00; font-weight: 700; }
+.brand-apply-btn {
+  margin-top: 14px; padding: 9px 18px;
+  background: #c47a00; color: #fff; border: none;
+  border-radius: 6px; font-size: 12px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif; cursor: pointer;
+  transition: all .15s;
+}
+.brand-apply-btn:hover { background: #a06000; }
+
+.card-g {
+  background:#fff; border:1.5px solid var(--border);
+  border-radius:12px; padding:20px 24px; margin-bottom:16px;
+}
+
+/* CUSTOM TEMPLATE */
+.tpl-custom {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  position: relative;
+}
+.tpl-custom::after {
+  content: '✦';
+  position: absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:18px; color:rgba(255,255,255,0.8);
+}
+.tpl-plan-lock {
+  position: absolute; top:4px; right:4px;
+  font-size:9px; background:rgba(0,0,0,0.15);
+  border-radius:3px; padding:1px 3px;
+  display:none;
+}
+.tpl-btn.tpl-custom-btn { position: relative; }
+
+/* CUSTOM PANEL */
+.custom-panel {
+  background: linear-gradient(135deg, #f8f5ff, #fff);
+  border: 1.5px solid #c4b5fd;
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+  display: none;
+}
+.custom-panel.visible { display: block; }
+.custom-panel-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #7c3aed;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.custom-panel-title::after { content:''; flex:1; height:1px; background:#c4b5fd; }
+.custom-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.custom-field label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.custom-color-row { display: flex; align-items:center; gap:6px; }
+.custom-color-row input[type=color] {
+  width:32px; height:30px; border:1.5px solid var(--border);
+  border-radius:5px; cursor:pointer; padding:2px; background:none; flex-shrink:0;
+}
+.custom-color-row input[type=text] {
+  flex:1; min-width:0; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:6px; font-size:12px; color:var(--ink);
+  padding:6px 8px; outline:none; font-family:'Noto Sans KR',sans-serif;
+}
+.custom-select {
+  width:100%; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:6px; font-size:12px; color:var(--ink);
+  padding:7px 8px; outline:none; font-family:'Noto Sans KR',sans-serif;
+}
+.custom-img-area {
+  grid-column: 1 / -1;
+  border: 1.5px dashed #c4b5fd; border-radius:8px; padding:12px;
+  text-align:center; cursor:pointer; background:rgba(124,58,237,0.04);
+  position:relative; transition:all .15s;
+}
+.custom-img-area:hover { border-color:#7c3aed; }
+.custom-img-preview {
+  width:100%; height:60px; object-fit:cover;
+  border-radius:5px; display:none; margin-bottom:6px;
+}
+.custom-img-text { font-size:11px; color:#7c3aed; font-weight:700; }
+.custom-img-remove {
+  display:none; position:absolute; top:6px; right:6px;
+  width:20px; height:20px; border-radius:50%;
+  background:#e84040; color:#fff; border:none;
+  font-size:11px; font-weight:900; cursor:pointer; line-height:20px; text-align:center;
+}
+@media (max-width: 480px) {
+  .custom-grid { grid-template-columns: 1fr; }
+}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ─── AUTH SCREEN ─── -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">CARD<span>.</span>AI</div>
+    <div class="auth-tagline">AI 카드뉴스 + 쓰레드 자동 생성</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('login',this)">로그인</button>
+      <button class="auth-tab" onclick="showAuthTab('signup',this)">회원가입</button>
+    </div>
+    <div id="loginForm">
+      <div class="auth-field"><label>이메일</label><input type="email" id="loginEmail" placeholder="example@email.com"></div>
+      <div class="auth-field"><label>비밀번호</label><input type="password" id="loginPw" placeholder="비밀번호 입력"></div>
+      <button class="auth-btn" onclick="doLogin()">로그인</button>
+      <div class="auth-err" id="loginErr"></div>
+      <div class="auth-hint">테스트 계정: free@test.com / standard@test.com / pro@test.com<br>비밀번호: 1234</div>
+    </div>
+    <div id="signupForm" style="display:none;">
+      <div class="auth-field"><label>이메일</label><input type="email" id="signupEmail" placeholder="example@email.com"></div>
+      <div class="auth-field"><label>비밀번호</label><input type="password" id="signupPw" placeholder="6자 이상"></div>
+      <div class="auth-field">
+        <label>플랜 선택</label>
+        <div class="plan-opts">
+          <div class="plan-opt sel" id="sopt_free" onclick="selectSignupPlan('free')"><div class="pn">무료</div><div class="pd">월 3회</div><div class="pp">0원</div></div>
+          <div class="plan-opt" id="sopt_standard" onclick="selectSignupPlan('standard')"><div class="pn">스탠다드</div><div class="pd">월 30회</div><div class="pp">9,900원</div></div>
+          <div class="plan-opt gold" id="sopt_pro" onclick="selectSignupPlan('pro')"><div class="pn">✦ PRO</div><div class="pd">무제한</div><div class="pp">19,900원</div></div>
+        </div>
+      </div>
+      <button class="auth-btn" onclick="doSignup()">가입하고 시작하기</button>
+      <div class="auth-err" id="signupErr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── APP SCREEN ─── -->
+<div class="app-screen" id="appScreen">
+  <nav class="app-nav">
+    <div class="nav-logo">CARD<span>.</span>AI</div>
+    <div class="nav-right">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="navEmail" style="font-size:12px;color:var(--muted);"></span>
+          <span id="navBadge" class="plan-badge"></span>
+        </div>
+        <div class="usage-wrap">
+          <span id="usageText"></span>
+          <div class="usage-bar"><div class="usage-fill" id="usageFill"></div></div>
+        </div>
+      </div>
+      <button class="nav-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </nav>
+
+  <div class="app-body">
+    <div class="upgrade-banner" id="upgradeBanner">
+      <p><strong>스탠다드</strong>로 업그레이드하면 월 30회 + 뉴스 URL + 더 많은 카드를 쓸 수 있어요.</p>
+      <button class="upgrade-btn" onclick="openUpgradeModal()">업그레이드 →</button>
+    </div>
+
+    <div class="wrap">
+
+  <header class="site-header">
+    <div class="logo">CARD<span>.</span>AI</div>
+    <div class="logo-sub">카드뉴스 + 쓰레드 자동 생성</div>
+  </header>
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabTopic" onclick="switchMode('topic')">✦ 주제로 만들기</button>
+    <button class="mode-tab" id="tabUrl" onclick="switchMode('url')">🔗 뉴스 URL로 만들기</button>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-section">
+    <div class="field">
+      <label>배경 이미지 방식</label>
+      <div class="img-source-tabs">
+        <button class="img-src-tab active" onclick="switchImgSource('gemini', this)">🎨 AI 이미지 생성 (나노바나나)</button>
+        <button class="img-src-tab" onclick="switchImgSource('unsplash', this)">📷 Unsplash 사진</button>
+      </div>
+    </div>
+
+    <div id="unsplashKeyField" class="field" style="display:none;">
+      <label>Unsplash Access Key</label>
+      <input type="password" id="unsplashKey" placeholder="unsplash.com/developers 에서 발급">
+    </div>
+    <div class="field" id="fieldTopic">
+      <label>주제 / 핵심 내용 <span style="color:var(--accent)">*</span></label>
+      <textarea id="topic" placeholder="예) 20대가 꼭 알아야 할 돈 관리 습관&#10;예) 살 안 빠지는 진짜 이유&#10;예) 퇴사 전에 반드시 준비해야 할 것들"></textarea>
+    </div>
+    <div class="field" id="fieldUrl" style="display:none;">
+      <label>뉴스 기사 URL <span style="color:var(--accent)">*</span></label>
+      <input type="url" id="newsUrl" placeholder="https://news.naver.com/...  또는 다른 뉴스 URL">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">네이버뉴스, 조선일보, 한겨레 등 대부분의 뉴스 사이트 지원</div>
+    </div>
+    <div class="field">
+      <label>플랜 선택</label>
+      <div class="plan-tabs" id="planTabs">
+        <button class="plan-tab active" onclick="setPlan('free',this)">
+          <span class="plan-name">무료</span>
+          <span class="plan-desc">최대 5장</span>
+        </button>
+        <button class="plan-tab" onclick="setPlan('standard',this)">
+          <span class="plan-name">스탠다드</span>
+          <span class="plan-desc">최대 10장</span>
+        </button>
+        <button class="plan-tab" onclick="setPlan('pro',this)">
+          <span class="plan-name">✦ PRO</span>
+          <span class="plan-desc">최대 20장</span>
+        </button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>카드 수 <span id="cardLimitNote" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--accent)">무료: 최대 5장</span></label>
+        <select id="cardCount"></select>
+      </div>
+      <div class="field">
+        <label>타깃</label>
+        <input type="text" id="target" placeholder="예) 20~30대, 직장인, 다이어터">
+      </div>
+    </div>
+    <button class="gen-btn" id="genBtn" onclick="generate()">✦ 카드뉴스 + 쓰레드 생성하기</button>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+  <div class="loading" id="loading">
+    <div class="loading-ring"></div>
+    <p>AI가 콘텐츠를 기획하고 있어요...</p>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+
+    <!-- WATERMARK FIELD -->
+    <div class="card-g" id="watermarkSection" style="display:none;">
+      <div class="section-hd" style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;">워터마크 설정<span style="font-size:0px"> </span><span style="flex:1;height:1px;background:var(--border);display:block;"></span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="text" id="watermarkText" placeholder="원하는 텍스트 입력 (비우면 워터마크 없음)"
+          style="flex:1;background:#f5f2ed;border:1.5px solid var(--border);border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--ink);padding:10px 14px;outline:none;"
+          oninput="window._watermarkText = this.value; if(cards.length) renderCards();">
+        <span id="watermarkLockNote" style="font-size:11px;color:var(--accent);white-space:nowrap;display:none;">🔒 무료는 고정</span>
+      </div>
+    </div>
+
+    <!-- BRAND KIT (PRO only) -->
+    <div class="brand-kit" id="brandKit">
+      <div class="brand-kit-title">✦ PRO 브랜드 커스텀</div>
+      <div class="brand-kit-grid">
+        <div class="brand-field">
+          <label>브랜드 컬러</label>
+          <div class="color-row">
+            <input type="color" class="color-input" id="brandColor" value="#e84040" oninput="onBrandColorInput(this.value)">
+            <input type="text" class="color-hex" id="brandColorHex" value="#e84040" placeholder="#e84040" oninput="onBrandHexInput(this.value)" maxlength="7">
+          </div>
+        </div>
+        <div class="brand-field">
+          <label>브랜드 로고</label>
+          <div class="logo-upload-area" id="logoUploadArea" onclick="document.getElementById('logoFile').click()" style="position:relative;cursor:pointer;">
+            <input type="file" accept="image/*" id="logoFile" onchange="handleLogoUpload(event)" style="display:none;">
+            <button id="logoRemoveBtn" onclick="event.stopPropagation();removeLogo()" style="display:none;position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:#e84040;color:#fff;border:none;font-size:12px;font-weight:900;cursor:pointer;line-height:22px;text-align:center;z-index:10;">✕</button>
+            <img id="logoPreview" class="logo-preview" style="display:none;">
+            <div class="logo-upload-text" id="logoUploadText">📁 로고 이미지 업로드</div>
+          </div>
+        </div>
+      </div>
+      <button class="brand-apply-btn" onclick="applyBrandKit()">✓ 브랜드 적용하기</button>
+    </div>
+
+    <div class="section-title">카드뉴스 미리보기</div>
+
+    <div class="template-grid" id="templateGrid">
+      <button class="tpl-btn active" onclick="switchTheme('minimal',this)" title="미니멀">
+        <div class="tpl-preview tpl-minimal"></div><span>미니멀</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('colorful',this)" title="컬러풀">
+        <div class="tpl-preview tpl-colorful"></div><span>컬러풀</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('newspaper',this)" title="뉴스페이퍼">
+        <div class="tpl-preview tpl-newspaper"></div><span>뉴스페이퍼</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('neon',this)" title="네온">
+        <div class="tpl-preview tpl-neon"></div><span>네온</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('pastel',this)" title="파스텔">
+        <div class="tpl-preview tpl-pastel"></div><span>파스텔</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('magazine',this)" title="매거진">
+        <div class="tpl-preview tpl-magazine"></div><span>매거진</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('gradient',this)" title="그라디언트">
+        <div class="tpl-preview tpl-gradient"></div><span>그라디언트</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('allblack',this)" title="올블랙">
+        <div class="tpl-preview tpl-allblack"></div><span>올블랙</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('retro',this)" title="레트로">
+        <div class="tpl-preview tpl-retro"></div><span>레트로</span>
+      </button>
+      <button class="tpl-btn" onclick="switchTheme('split',this)" title="스플릿">
+        <div class="tpl-preview tpl-split"></div><span>스플릿</span>
+      </button>
+      <button class="tpl-btn tpl-custom-btn" id="customTplBtn" onclick="tryCustomTemplate(this)" title="커스텀">
+        <div class="tpl-preview tpl-custom"></div>
+        <span>커스텀</span>
+        <div class="tpl-plan-lock" id="customTplLock">🔒</div>
+      </button>
+    </div>
+
+    <!-- CUSTOM TEMPLATE PANEL -->
+    <div class="custom-panel" id="customPanel">
+      <div class="custom-panel-title">✦ 커스텀 템플릿</div>
+      <div class="custom-grid">
+        <div class="custom-field">
+          <label>배경색</label>
+          <div class="custom-color-row">
+            <input type="color" id="cBg" value="#1a1a2e" oninput="syncCustomColor('cBg','cBgHex')">
+            <input type="text" id="cBgHex" value="#1a1a2e" maxlength="7" oninput="syncCustomHex('cBgHex','cBg')">
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>제목 색상</label>
+          <div class="custom-color-row">
+            <input type="color" id="cTitle" value="#ffffff" oninput="syncCustomColor('cTitle','cTitleHex')">
+            <input type="text" id="cTitleHex" value="#ffffff" maxlength="7" oninput="syncCustomHex('cTitleHex','cTitle')">
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>본문 색상</label>
+          <div class="custom-color-row">
+            <input type="color" id="cBody" value="#cccccc" oninput="syncCustomColor('cBody','cBodyHex')">
+            <input type="text" id="cBodyHex" value="#cccccc" maxlength="7" oninput="syncCustomHex('cBodyHex','cBody')">
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>포인트 컬러</label>
+          <div class="custom-color-row">
+            <input type="color" id="cAccent" value="#e84040" oninput="syncCustomColor('cAccent','cAccentHex')">
+            <input type="text" id="cAccentHex" value="#e84040" maxlength="7" oninput="syncCustomHex('cAccentHex','cAccent')">
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>텍스트 정렬</label>
+          <select class="custom-select" id="cAlign" onchange="livePreviewCustom()">
+            <option value="left">왼쪽 정렬</option>
+            <option value="center">가운데 정렬</option>
+          </select>
+        </div>
+        <div class="custom-field">
+          <label>텍스트 위치</label>
+          <select class="custom-select" id="cPos" onchange="livePreviewCustom()">
+            <option value="center">중앙</option>
+            <option value="bottom">하단</option>
+            <option value="top">상단</option>
+          </select>
+        </div>
+        <div class="custom-field">
+          <label>오버레이 투명도</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" id="cOverlay" min="0" max="90" value="60" style="flex:1;" oninput="document.getElementById('cOverlayVal').textContent=this.value+'%';livePreviewCustom()">
+            <span id="cOverlayVal" style="font-size:11px;color:var(--muted);min-width:28px;">60%</span>
+          </div>
+        </div>
+        <div class="custom-img-area" id="customImgArea" onclick="document.getElementById('customImgFile').click()">
+          <input type="file" id="customImgFile" accept="image/*" style="display:none;" onchange="handleCustomImg(event)">
+          <button class="custom-img-remove" id="customImgRemove" onclick="event.stopPropagation();removeCustomImg()">✕</button>
+          <img id="customImgPreview" class="custom-img-preview">
+          <div class="custom-img-text" id="customImgText">📁 배경 이미지 업로드 (선택사항)</div>
+        </div>
+      </div>
+      <button style="margin-top:12px;padding:9px 18px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;" onclick="livePreviewCustom()">✓ 미리보기 적용</button>
+    </div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label class="field-label">폰트 선택</label>
+      <select id="fontSelect" onchange="changeFont(this.value)" style="width:100%;background:#fff;border:1.5px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:var(--ink);padding:9px 12px;outline:none;">
+        <optgroup label="── 고딕/산세리프 ──">
+        <option value="'Noto Sans KR', sans-serif">Noto Sans KR (기본)</option>
+        <option value="'NanumSquareNeo', 'Noto Sans KR', sans-serif">나눔스퀘어 네오</option>
+        <option value="'Nanum Gothic', sans-serif">나눔고딕</option>
+        <option value="'Gothic A1', sans-serif">Gothic A1</option>
+        <option value="'Do Hyeon', sans-serif">Do Hyeon</option>
+        <option value="'Black Han Sans', sans-serif">Black Han Sans (블랙)</option>
+        <option value="'Gugi', sans-serif">구기 (Gugi)</option>
+        </optgroup>
+        <optgroup label="── 명조/세리프 ──">
+        <option value="'Noto Serif KR', serif">Noto Serif KR</option>
+        <option value="'Nanum Myeongjo', serif">나눔명조</option>
+        <option value="'Hahmlet', serif">함렛 (Hahmlet)</option>
+        <option value="'Song Myung', serif">송명 (Song Myung)</option>
+        </optgroup>
+        <optgroup label="── 손글씨/감성체 ──">
+        <option value="'Jua', sans-serif">주아 (Jua)</option>
+        <option value="'Gaegu', cursive">개구 (Gaegu)</option>
+        <option value="'Hi Melody', cursive">Hi Melody</option>
+        <option value="'Single Day', cursive">Single Day</option>
+        <option value="'Kirang Haerang', cursive">기랑해랑</option>
+        <option value="'Gamja Flower', cursive">감자꽃 (Gamja Flower)</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="card-viewer">
+      <div class="card-stage" id="cardStage"></div>
+      <div class="card-nav">
+        <button class="nav-arrow" id="prevBtn" onclick="navigate(-1)">←</button>
+        <div class="card-dots" id="cardDots"></div>
+        <button class="nav-arrow" id="nextBtn" onclick="navigate(1)">→</button>
+      </div>
+      <div class="dl-row">
+        <button class="dl-btn" onclick="downloadCard()">↓ 현재 카드 저장</button>
+        <button class="zip-btn" id="zipBtn" onclick="downloadAllZip()">⬇ 전체 ZIP 다운로드</button>
+      </div>
+    </div>
+
+    <!-- EDIT PANEL -->
+    <div class="section-title">카드 내용 수정</div>
+    <div class="edit-panel">
+      <div class="edit-panel-title">제목 / 본문 직접 수정 후 반영</div>
+      <div id="editRows"></div>
+      <button class="apply-btn" onclick="applyEdits()">✓ 수정사항 카드에 반영</button>
+    </div>
+
+    <div class="section-title">쓰레드 텍스트</div>
+    <div class="threads-box">
+      <div class="threads-label">THREADS</div>
+      <div class="threads-text" id="threadsText"></div>
+      <div class="threads-actions">
+        <button class="copy-btn" id="copyBtn" onclick="copyThreads()">📋 복사하기</button>
+      </div>
+    </div>
+
+  </div>
+    </div><!-- /wrap -->
+  </div><!-- /app-body -->
+</div><!-- /app-screen -->
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal-box">
+    <div style="font-size:18px;font-weight:900;margin-bottom:8px;">플랜 업그레이드</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">지금 업그레이드하고 더 많은 기능을 사용하세요.</p>
+    <div class="modal-plan-row" onclick="upgradeTo('standard')">
+      <div><div style="font-weight:700;">스탠다드</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">월 30회 · 최대 10장 · 뉴스 URL</div></div>
+      <div style="font-weight:700;color:#1a4ac8;">9,900원/월</div>
+    </div>
+    <div class="modal-plan-row gold" onclick="upgradeTo('pro')">
+      <div><div style="font-weight:700;color:#c47a00;">✦ PRO</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">무제한 · 최대 20장 · 브랜드 커스텀</div></div>
+      <div style="font-weight:700;color:#c47a00;">19,900원/월</div>
+    </div>
+    <button onclick="closeUpgradeModal()" style="width:100%;padding:11px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;margin-top:4px;">닫기</button>
+  </div>
+</div>
+
+<script>
+let cards = [];
+let imageUrls = []; // stores selected image URL per card
+let currentIdx = 0;
+let currentTheme = 'minimal';
+
+const palettes = [
+  { title: '#1a1a2e', body: '#fff' },
+  { title: '#2d1b00', body: '#fff' },
+  { title: '#0d1117', body: '#e0f7fa' },
+  { title: '#ffecd2', body: '#3e1f00' },
+  { title: '#1b4332', body: '#d8f3dc' },
+];
+
+async function generate() {
+  if (!currentUser) { showErr('로그인 후 이용해주세요.'); return; }
+  const { usage, maxUsage } = currentUser;
+  if (maxUsage !== Infinity && usage >= maxUsage) {
+    showErr(`이번 달 생성 횟수(${maxUsage}회)를 모두 사용했어요. 업그레이드해주세요.`);
+    document.getElementById('upgradeBanner').style.display = 'flex';
+    return;
+  }
+  await _doGenerate();
+  if (currentUser) {
+    try {
+      const usageRes = await fetch('/api/usage-increment', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token }
+      });
+      if (usageRes.ok) {
+        const u = await usageRes.json();
+        currentUser.usage    = u.usage;
+        currentUser.maxUsage = u.maxUsage;
+        updateUsageBar();
+      }
+    } catch(e) { console.error('usage:', e); }
+  }
+}
+
+function switchMode(mode) {
+  const isTopic = mode === 'topic';
+  document.getElementById('fieldTopic').style.display = isTopic ? '' : 'none';
+  document.getElementById('fieldUrl').style.display = isTopic ? 'none' : '';
+  document.getElementById('tabTopic').className = 'mode-tab' + (isTopic ? ' active' : '');
+  document.getElementById('tabUrl').className = 'mode-tab' + (!isTopic ? ' active' : '');
+  document.getElementById('genBtn').textContent = isTopic
+    ? '✦ 카드뉴스 + 쓰레드 생성하기'
+    : '🔗 기사 읽어서 카드뉴스 만들기';
+  window._mode = mode;
+}
+window._mode = 'topic';
+
+async function fetchArticle(url) {
+  const res = await fetch(`/api/fetch-article?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error('기사를 가져오지 못했어요.');
+  const { html, error } = await res.json();
+  if (error) throw new Error(error);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('script,style,nav,header,footer,aside,iframe,noscript').forEach(el => el.remove());
+  const article = tmp.querySelector('article,.article_body,#articleBody,.news_view,#newsViewArea,.content');
+  const text = (article || tmp).innerText || (article || tmp).textContent || '';
+  return text.replace(/\s+/g,' ').replace(/[\u0000-\u001F\u007F-\u009F]/g,'').replace(/`/g,"'").replace(/\\/g,' ').trim().slice(0,1800);
+}
+
+function switchImgSource(source, btn) {
+  document.querySelectorAll('.img-src-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window._imgSource = source;
+  document.getElementById('geminiKeyField').style.display = source === 'gemini' ? '' : 'none';
+  document.getElementById('unsplashKeyField').style.display = source === 'unsplash' ? '' : 'none';
+}
+window._imgSource = 'gemini';
+
+async function generateImageWithGemini(keyword, cardTitle, fallbackSeed) {
+  const fallback = `https://picsum.photos/seed/${fallbackSeed}/640/640`;
+  try {
+
+    const prompt = `Cinematic background image, no text, no people faces. Topic: ${keyword}. Dark mood suitable for white text overlay.`;
+    const res = await fetch('/api/gemini-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (data.imageUrl) return data.imageUrl;
+    return fallback;
+  } catch(e) {
+    return fallback;
+  }
+}
+
+async function fetchUnsplashImages(keyword, cardIndex, count = 4) {
+  const keyEl = document.getElementById('unsplashKey');
+  const key = keyEl ? keyEl.value.trim() : '';
+  if (!key) return [];
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keyword)}&per_page=${count}&orientation=squarish&client_id=${key}`
+    );
+    const data = await res.json();
+    return (data.results || []).map(p => p.urls.small);
+  } catch(e) { return []; }
+}
+
+async function searchImageForCard(cardIndex, keyword) {
+  const srcBtn = document.querySelector('.img-src-tab.active');
+  const src = window._imgSource || 'gemini';
+  const searchBtn = document.querySelector(`#imgOptions_${cardIndex}`)?.parentElement?.querySelector('.img-search-btn');
+  if (searchBtn) { searchBtn.textContent = '검색 중...'; searchBtn.disabled = true; }
+  
+  let imgs = [];
+  if (src === 'gemini') {
+    const card = cards[cardIndex];
+    const url = await generateImageWithGemini(keyword, card ? card.title : keyword, cardIndex * 41 + 7);
+    if (url) imgs = [url];
+  } else {
+    imgs = await fetchUnsplashImages(keyword, cardIndex, 4);
+  }
+  
+  if (searchBtn) { searchBtn.textContent = '검색'; searchBtn.disabled = false; }
+  if (imgs.length > 0) {
+    imageUrls[cardIndex] = imgs[0];
+    cards[cardIndex]._imgs = imgs;
+    renderImageOptions(cardIndex, imgs);
+    if (currentIdx === cardIndex) renderCards();
+  }
+}
+
+function renderImageOptions(cardIndex, imgs) {
+  const container = document.getElementById('imgOptions_' + cardIndex);
+  if (!container) return;
+  container.innerHTML = '';
+  imgs.forEach((url, j) => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.className = 'img-option' + (j === 0 ? ' selected' : '');
+    img.onclick = () => {
+      container.querySelectorAll('.img-option').forEach(i => i.classList.remove('selected'));
+      img.classList.add('selected');
+      imageUrls[cardIndex] = url;
+      if (currentIdx === cardIndex) renderCards();
+    };
+    container.appendChild(img);
+  });
+}
+
+async function _doGenerate() {
+  const cardCount = parseInt(document.getElementById('cardCount').value);
+  const target = document.getElementById('target').value.trim() || '일반 대중';
+  const mode = window._mode || 'topic';
+
+  const errBox = document.getElementById('errorBox');
+  errBox.className = 'error-box';
+
+  if (!apiKey) { showErr('API 키를 입력해주세요.'); return; }
+
+  let topicText = '';
+
+  if (mode === 'url') {
+    const url = document.getElementById('newsUrl').value.trim();
+    if (!url) { showErr('뉴스 URL을 입력해주세요.'); return; }
+    setLoading(true);
+    document.querySelector('.loading p').textContent = '기사를 읽어오는 중...';
+    try {
+      const articleText = await fetchArticle(url);
+      if (articleText.length < 100) throw new Error('기사 내용을 가져오지 못했습니다. URL을 확인해주세요.');
+      const cleanArticle = articleText
+        .replace(/"/g, "'")
+        .replace(/\n{3,}/g, '\n\n')
+        .slice(0, 1800);
+      topicText = `다음 뉴스 기사 내용을 바탕으로 카드뉴스를 만들어주세요:\n\n${cleanArticle}`;
+      document.querySelector('.loading p').textContent = 'AI가 카드뉴스를 기획하는 중...';
+    } catch(e) {
+      showErr('기사 읽기 실패: ' + e.message);
+      setLoading(false);
+      return;
+    }
+  } else {
+    const topic = document.getElementById('topic').value.trim();
+    if (!topic) { showErr('주제를 입력해주세요.'); return; }
+    topicText = topic;
+    setLoading(true);
+  }
+
+  const prompt = `당신은 인스타그램 카드뉴스 전문 기획자입니다.
+
+주제/내용: ${topicText}
+타깃: ${target}
+카드 수: ${cardCount}장
+
+다음 형식으로 카드뉴스 내용을 JSON으로만 출력하세요. 다른 설명 없이 JSON만:
+
+{
+  "cards": [
+    {
+      "num": 1,
+      "title": "카드 제목 (15자 이내, 임팩트 있게)",
+      "body": "카드 본문 (2~3줄, 핵심 내용만, 60자 이내)",
+      "imageKeyword": "영어 이미지 키워드 1~2단어"
+    }
+  ],
+  "threads": "쓰레드 텍스트"
+}
+
+imageKeyword 규칙:
+- 각 카드의 분위기/내용에 어울리는 영어 단어 1~2개 (예: finance, technology, health, city, nature)
+- Unsplash 검색에 쓸 키워드
+
+카드 작성 규칙 (매우 중요):
+- 절대 뻔한 내용 쓰지 말 것. "규칙적인 식사가 중요합니다" 같은 당연한 말 금지
+- 읽는 사람이 "오? 이런 게 있었어?" "이걸 몰랐다니" 하고 반응할 만한 반전/의외성 있는 내용
+- 구체적인 숫자, 연구 결과, 반직관적인 사실 위주로
+
+말투 규칙 (절대 지킬 것):
+- "당신"이라는 단어 절대 사용 금지. 대신 "나", "우리", "사람들" 또는 주어 생략
+- 제목은 마치 친구가 카톡으로 보내주는 것처럼: "살 안 빠지는 진짜 이유", "운동해도 살 찌는 이유"
+- "~입니다", "~합니다" 같은 격식체 금지. "~임", "~됨", "~함" 스타일로
+- 본문도 마치 지인이 알려주는 것처럼 자연스럽게. "연구에서 밝혀졌습니다" 대신 "연구 결과 밝혀짐"
+- AI가 쓴 티 나는 표현 금지: "중요합니다", "필요합니다", "당신의", "여러분", "주의가 필요합니다"
+- 짧고 임팩트 있게. 제목은 15자 이내, 본문은 핵심만 2~3줄
+
+- 1번 카드: 충격적이거나 의외의 사실로 시작 → 스크롤 멈추게
+- 중간 카드: 대부분이 모르는 구체적 팁/사실, "사실 ~는 반대였다" 류의 반전
+- 마지막 카드: 바로 실행할 수 있는 아주 구체적인 행동 하나
+
+쓰레드 텍스트 규칙 (매우 중요):
+- 실제 한국인이 쓰레드에 올리는 것처럼 자연스럽게
+- 짧은 문장 + 줄바꿈 많이 (한 문장 끝나면 무조건 줄바꿈)
+- "~했음", "~임", "근데", "진짜" 같은 구어체
+- AI 티 절대 안 나게. 조사 어색하면 다시 쓸 것
+- 작은따옴표('') 절대 사용 금지. 강조는 그냥 문장으로 표현
+- 문어체 표현 금지: "~인가", "~것이다", "~하여야" 같은 말투 쓰지 말 것
+- 맞춤법 완벽하게. 오타 절대 금지
+- 첫 줄에 훅, 마지막은 여운 있게 끝내기
+- 이모지 1개만, 중간이나 마지막에 자연스럽게
+- 300자 내외`;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: Math.max(2000, cardCount * 250),
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let raw = data.content[0].text.replace(/```json|```/g, '').trim();
+    // Extract JSON object if surrounded by other text
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd   = raw.lastIndexOf('}');
+    if (jsonStart > 0 || (jsonEnd < raw.length - 1 && jsonEnd > 0)) {
+      raw = raw.substring(jsonStart, jsonEnd + 1);
+    }
+    // Auto-repair truncated JSON by finding last complete card entry
+    if (!raw.endsWith('}')) {
+      const lastCard = raw.lastIndexOf('}');
+      if (lastCard > 0) {
+        // Find threads key - if missing, close the array and add placeholder
+        const hasThreads = raw.includes('"threads"');
+        raw = raw.substring(0, lastCard + 1);
+        const openBracket = raw.lastIndexOf('[');
+        const closedCards = raw.substring(0, lastCard + 1);
+        if (!hasThreads) {
+          raw = closedCards.replace(/,\s*$/, '') + '],"threads":"카드뉴스를 확인해보세요."}';
+        } else {
+          raw = closedCards + '}';
+        }
+      }
+    }
+    const parsed = JSON.parse(raw);
+
+    cards = parsed.cards;
+    imageUrls = new Array(cards.length).fill('');
+    currentIdx = 0;
+
+    // fetch images per selected source
+    const imgSource = window._imgSource || 'gemini';
+    if (imgSource === 'gemini') {
+      document.querySelector('.loading p').textContent = 'AI 배경 이미지 생성 중... (카드당 5~10초)';
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        document.querySelector('.loading p').textContent = `AI 이미지 생성 중... (${i+1}/${cards.length})`;
+        const url = await generateImageWithGemini(card.imageKeyword || 'abstract', card.title, i * 41 + (i+1));
+        if (url) { imageUrls[i] = url; card._imgs = [url]; }
+      }
+    } else if (imgSource === 'unsplash') {
+      await Promise.all(cards.map(async (card, i) => {
+        const imgs = await fetchUnsplashImages(card.imageKeyword || 'abstract', i, 4);
+        if (imgs.length) imageUrls[i] = imgs[0];
+        card._imgs = imgs;
+      }));
+    }
+
+    renderCards();
+    renderEditPanel();
+    const cleanThreads = parsed.threads
+      .replace(/'/g, '‘')
+      .replace(/'/g, '’');
+    document.getElementById('threadsText').textContent = cleanThreads;
+    document.getElementById('results').className = 'results show';
+
+  } catch(e) {
+    showErr('오류: ' + e.message);
+  }
+
+  setLoading(false);
+}
+
+function renderCards() {
+  const stage = document.getElementById('cardStage');
+  const dots  = document.getElementById('cardDots');
+  if (!stage || !cards.length) return;
+  stage.innerHTML = '';
+  dots.innerHTML  = '';
+
+  const card = cards[currentIdx];
+  const i    = currentIdx;
+  const fallback = `https://picsum.photos/seed/${i * 41 + card.num}/640/640`;
+  const img  = imageUrls[i] || fallback;
+  const font = window._cardFont || "'Noto Sans KR', sans-serif";
+  const serif = window._cardFont ? font : "'Noto Serif KR', serif";
+
+  // palette helpers
+  const neonC   = ['#00ffe0','#ff00aa','#aaff00','#00aaff','#ffaa00'][i%5];
+  const pastelB = ['linear-gradient(135deg,#fce4ec,#f8bbd0)','linear-gradient(135deg,#e8eaf6,#c5cae9)','linear-gradient(135deg,#e0f7fa,#b2ebf2)','linear-gradient(135deg,#f9fbe7,#f0f4c3)','linear-gradient(135deg,#fff3e0,#ffe0b2)'][i%5];
+  const flatG   = ['linear-gradient(135deg,#f093fb,#f5576c)','linear-gradient(135deg,#4facfe,#00f2fe)','linear-gradient(135deg,#43e97b,#38f9d7)','linear-gradient(135deg,#fa709a,#fee140)','linear-gradient(135deg,#a18cd1,#fbc2eb)'][i%5];
+  const retroB  = ['#f5e6c8','#e8f0d8','#d8e8f5','#f5d8e8','#e8e0d0'][i%5];
+  const splitC  = ['#e84040','#2d1a6e','#0d5c3a','#c47a00','#1a3a6e'][i%5];
+  const darkOv  = ['rgba(10,20,50,0.65)','rgba(40,15,5,0.62)','rgba(5,20,40,0.65)','rgba(55,15,5,0.60)','rgba(5,35,18,0.62)'][i%5];
+  const ts = 'text-shadow:0 2px 10px rgba(0,0,0,0.9),0 1px 3px rgba(0,0,0,0.8)';
+  const brandC = window._brandColor || null;
+  const brandLogo = window._brandLogo || null;
+  const effectiveNeonC   = brandC || neonC;
+  const effectiveSplitC  = brandC || splitC;
+  const brandAccent      = brandC || '#e84040';
+  const retroAccent      = brandC || '#8b6914';
+  // Badge: logo > custom watermark > plan-based default
+  const wText = window._watermarkText !== undefined ? window._watermarkText : null;
+  const plan  = currentUser ? currentUser.plan : 'free';
+  let badge;
+  if (brandLogo) {
+    badge = '<img src="' + brandLogo + '" style="max-width:48px;max-height:22px;object-fit:contain;opacity:0.8;">';
+  } else if (plan === 'free') {
+    badge = 'CARD.AI';  // free: always show watermark
+  } else if (wText !== null && wText.trim() !== '') {
+    badge = wText.trim();  // standard/pro: custom text
+  } else if (plan === 'standard' || plan === 'pro') {
+    badge = '';  // standard/pro with empty field: no watermark
+  } else {
+    badge = 'CARD.AI';
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'card-render';
+
+  const templates = {
+    minimal: `
+      <div class="cr-layer" style="background:#fff url('${img}') center/cover;"></div>
+      <div class="cr-layer" style="background:rgba(255,255,255,0.86);"></div>
+      <div class="cr-layer" style="left:0;top:0;width:4px;height:100%;background:#1a1a1a;"></div>
+      <div class="cr-content" style="padding:32px 32px 32px 40px;">
+        <div class="cr-num">${card.num} / ${cards.length}</div>
+        <div class="cr-title" style="font-family:${serif};color:#1a1a1a;">${card.title}</div>
+        <div class="cr-body" style="font-family:${font};color:#555;">${card.body}</div>
+        <div class="cr-badge" style="color:#ddd;">${badge}</div>
+      </div>`,
+
+    colorful: `
+      <div class="cr-layer" style="background:#1a1a2e url('${img}') center/cover;"></div>
+      <div class="cr-layer" style="background:${darkOv};"></div>
+      <div class="cr-num cr-abs" style="top:18px;right:18px;color:rgba(255,255,255,0.6);">${card.num}</div>
+      <div class="cr-content cr-bottom" style="padding:26px;">
+        <div class="cr-title" style="font-family:${font};color:#fff;${ts};">${card.title}</div>
+        <div class="cr-body" style="font-family:${font};color:#fff;${ts};font-size:14px;">${card.body}</div>
+      </div>`,
+
+    newspaper: `
+      <div class="cr-layer" style="background:#f9f4e8;"></div>
+      <div style="position:absolute;inset:0;border:2px solid #1a1a1a;pointer-events:none;"></div>
+      <div class="cr-content" style="padding:0;">
+        <div style="border-bottom:3px double #1a1a1a;padding:10px 18px;display:flex;justify-content:space-between;">
+          <span style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#555;">${badge}</span>
+          <span style="font-family:monospace;font-size:9px;color:#888;">No.0${card.num}</span>
+        </div>
+        <div style="padding:16px 18px;">
+          <div style="font-family:${serif};font-size:20px;font-weight:900;line-height:1.3;color:#111;word-break:keep-all;border-bottom:1px solid #bbb;padding-bottom:12px;margin-bottom:12px;">${card.title}</div>
+          <div style="font-family:${font};font-size:12.5px;line-height:1.9;color:#333;word-break:keep-all;">${card.body}</div>
+        </div>
+        <div style="position:absolute;bottom:10px;left:18px;right:18px;border-top:1px solid #ccc;padding-top:6px;font-family:monospace;font-size:8px;color:#aaa;">© 2025 ${typeof badge==='string'?badge:'CARD.AI'} PRESS</div>
+      </div>`,
+
+    neon: `
+      <div class="cr-layer" style="background:#050510;"></div>
+      <div style="position:absolute;inset:0;border:1px solid ${effectiveNeonC}22;pointer-events:none;"></div>
+      <div class="cr-content" style="justify-content:center;">
+        <div style="font-family:monospace;font-size:9px;color:${effectiveNeonC};letter-spacing:3px;margin-bottom:20px;opacity:0.8;">0${card.num} / 0${cards.length}</div>
+        <div style="width:40px;height:2px;background:${effectiveNeonC};margin-bottom:18px;box-shadow:0 0 8px ${effectiveNeonC};"></div>
+        <div style="font-family:${font};font-size:21px;font-weight:900;line-height:1.4;color:#fff;word-break:keep-all;margin-bottom:14px;text-shadow:0 0 20px ${effectiveNeonC}44;">${card.title}</div>
+        <div style="font-family:${font};font-size:13px;line-height:1.8;color:rgba(255,255,255,0.65);word-break:keep-all;">${card.body}</div>
+        <div class="cr-badge" style="color:${effectiveNeonC};opacity:0.5;">${badge}</div>
+      </div>`,
+
+    pastel: `
+      <div class="cr-layer" style="background:${pastelB};border-radius:12px;"></div>
+      <div class="cr-content" style="justify-content:center;">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.6);display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:11px;font-weight:700;color:#666;margin-bottom:18px;">0${card.num}</div>
+        <div style="font-family:${serif};font-size:20px;font-weight:900;line-height:1.4;color:#333;word-break:keep-all;margin-bottom:12px;">${card.title}</div>
+        <div style="font-family:${font};font-size:13px;line-height:1.8;color:#555;word-break:keep-all;">${card.body}</div>
+        <div class="cr-badge" style="color:rgba(0,0,0,0.15);">${badge}</div>
+      </div>`,
+
+    magazine: `
+      <div class="cr-layer" style="background:#fff;"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:58%;background:url('${img}') center/cover;">
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.3) 100%);"></div>
+        <div style="position:absolute;top:12px;left:12px;font-family:monospace;font-size:9px;color:#fff;background:rgba(0,0,0,0.35);padding:2px 7px;letter-spacing:2px;">${badge}</div>
+        <div style="position:absolute;bottom:10px;right:12px;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.7);font-weight:700;">0${card.num}</div>
+      </div>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:44%;background:#fff;padding:14px 16px;box-sizing:border-box;">
+        <div style="font-family:${font};font-size:16px;font-weight:900;line-height:1.3;color:#1a1a1a;word-break:keep-all;margin-bottom:8px;">${card.title}</div>
+        <div style="font-family:${font};font-size:11.5px;line-height:1.7;color:#666;word-break:keep-all;">${card.body}</div>
+      </div>`,
+
+    gradient: `
+      <div class="cr-layer" style="background:${flatG};"></div>
+      <div class="cr-layer" style="background:rgba(0,0,0,0.12);"></div>
+      <div class="cr-num cr-abs" style="top:20px;left:20px;color:rgba(255,255,255,0.6);letter-spacing:2px;font-size:9px;">${badge}</div>
+      <div class="cr-num cr-abs" style="top:20px;right:20px;color:rgba(255,255,255,0.7);">0${card.num}</div>
+      <div class="cr-content cr-bottom">
+        <div style="font-family:${font};font-size:22px;font-weight:900;line-height:1.3;color:#fff;word-break:keep-all;margin-bottom:10px;text-shadow:0 2px 8px rgba(0,0,0,0.25);">${card.title}</div>
+        <div style="font-family:${font};font-size:13.5px;line-height:1.8;color:rgba(255,255,255,0.9);word-break:keep-all;">${card.body}</div>
+      </div>`,
+
+    allblack: `
+      <div class="cr-layer" style="background:#080808;"></div>
+      <div class="cr-content" style="justify-content:center;">
+        <div style="font-family:monospace;font-size:9px;color:#444;letter-spacing:3px;margin-bottom:22px;">${badge ? '<span style="opacity:0.4;font-size:8px;">' + (typeof badge === 'string' ? badge : '●') + '</span>' : ''} 0${card.num}</div>
+        <div style="font-family:${font};font-size:22px;font-weight:900;line-height:1.3;color:#fff;word-break:keep-all;margin-bottom:14px;">${card.title}</div>
+        <div style="width:24px;height:1px;background:${brandAccent};margin-bottom:14px;"></div>
+        <div style="font-family:${font};font-size:13px;line-height:1.8;color:#888;word-break:keep-all;">${card.body}</div>
+      </div>`,
+
+    retro: `
+      <div class="cr-layer" style="background:${retroB};border:3px double ${retroAccent};"></div>
+      <div style="position:absolute;inset:8px;border:1px solid ${retroAccent}44;pointer-events:none;"></div>
+      <div class="cr-content" style="justify-content:center;text-align:center;">
+        <div style="font-family:monospace;font-size:9px;color:${retroAccent};letter-spacing:3px;margin-bottom:14px;opacity:0.7;">✦ ${typeof badge==='string'?badge:'●'} ✦</div>
+        <div style="font-family:${serif};font-size:20px;font-weight:900;line-height:1.4;color:#3d2b00;word-break:keep-all;margin-bottom:12px;">${card.title}</div>
+        <div style="color:${retroAccent};font-size:13px;margin-bottom:12px;">— 0${card.num} —</div>
+        <div style="font-family:${font};font-size:12.5px;line-height:1.8;color:#5a3e00;word-break:keep-all;">${card.body}</div>
+      </div>`,
+
+    custom: (function() {
+      const s  = window._customSettings || {};
+      const bg = s.bg || '#1a1a2e', tc = s.title || '#fff', bc = s.body || '#ccc';
+      const ac = s.accent || '#e84040', al = s.align || 'left', pos = s.pos || 'center';
+      const ov = s.overlay !== undefined ? s.overlay : 0.6;
+      const justify = pos === 'bottom' ? 'flex-end' : pos === 'top' ? 'flex-start' : 'center';
+      const bgImg = window._customBgImage;
+      const bgStyle = bgImg
+        ? `background:${bg} url('${bgImg}') center/cover;`
+        : `background:${bg};`;
+      const overlayDiv = bgImg
+        ? `<div style="position:absolute;inset:0;background:${bg};opacity:${ov};"></div>`
+        : '';
+      return `
+        <div class="cr-layer" style="${bgStyle}"></div>
+        ${overlayDiv}
+        <div style="position:absolute;top:18px;left:18px;width:28px;height:2px;background:${ac};z-index:2;"></div>
+        <div class="cr-content" style="justify-content:${justify};text-align:${al};padding:28px;z-index:2;">
+          <div style="font-family:${font};font-size:10px;letter-spacing:2px;color:${ac};margin-bottom:16px;opacity:0.8;">0${card.num} / 0${cards.length}</div>
+          <div style="font-family:${font};font-size:21px;font-weight:900;line-height:1.4;color:${tc};word-break:keep-all;margin-bottom:12px;">${card.title}</div>
+          <div style="width:20px;height:1.5px;background:${ac};margin:${al==='center'?'0 auto':''} 0 12px;"></div>
+          <div style="font-family:${font};font-size:13px;line-height:1.8;color:${bc};word-break:keep-all;">${card.body}</div>
+          <div class="cr-badge" style="color:${ac};opacity:0.5;">${badge}</div>
+        </div>`;
+    })(),
+
+    split: `
+      <div class="cr-layer" style="background:#fff;"></div>
+      <div style="position:absolute;left:0;top:0;width:42%;height:100%;background:${effectiveSplitC};display:flex;flex-direction:column;justify-content:center;padding:20px 16px;box-sizing:border-box;">
+        <div style="font-family:monospace;font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:2px;margin-bottom:10px;">0${card.num}</div>
+        <div style="width:24px;height:2px;background:rgba(255,255,255,0.5);margin-bottom:10px;"></div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);font-family:monospace;letter-spacing:1px;">${badge}</div>
+      </div>
+      <div style="position:absolute;left:42%;top:0;right:0;height:100%;background:url('${img}') center/cover;">
+        <div style="position:absolute;inset:0;background:rgba(255,255,255,0.93);"></div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:18px 16px;box-sizing:border-box;">
+          <div style="font-family:${font};font-size:16px;font-weight:900;line-height:1.4;color:#1a1a1a;word-break:keep-all;margin-bottom:10px;">${card.title}</div>
+          <div style="font-family:${font};font-size:11px;line-height:1.75;color:#555;word-break:keep-all;">${card.body}</div>
+        </div>
+      </div>`
+  };
+
+  wrap.innerHTML = templates[currentTheme] || templates.minimal;
+  stage.appendChild(wrap);
+
+  cards.forEach((_, idx) => {
+    const dot = document.createElement('div');
+    dot.className = 'card-dot' + (idx === currentIdx ? ' active' : '');
+    dots.appendChild(dot);
+  });
+  document.getElementById('prevBtn').disabled = currentIdx === 0;
+  document.getElementById('nextBtn').disabled = currentIdx === cards.length - 1;
+}
+
+function navigate(dir) {
+  currentIdx = Math.max(0, Math.min(cards.length - 1, currentIdx + dir));
+  renderCards();
+}
+
+function switchTheme(theme, btn) {
+  currentTheme = theme;
+  document.querySelectorAll('.tpl-btn').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const panel = document.getElementById('customPanel');
+  if (panel && theme !== 'custom') panel.classList.remove('visible');
+  renderCards();
+}
+
+async function downloadCard() {
+  const stage = document.getElementById('cardStage');
+  const child = stage.firstElementChild;
+  if (!child) return;
+  try {
+    const canvas = await html2canvas(child, { scale: 3, useCORS: true, backgroundColor: null });
+    const link = document.createElement('a');
+    link.download = `card_${currentIdx + 1}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('이미지 저장 오류: ' + e.message);
+  }
+}
+
+function copyThreads() {
+  const text = document.getElementById('threadsText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    btn.className = 'copy-btn done';
+    setTimeout(() => { btn.textContent = '📋 복사하기'; btn.className = 'copy-btn'; }, 2000);
+  });
+}
+
+function showErr(msg) {
+  const b = document.getElementById('errorBox');
+  b.textContent = '⚠ ' + msg;
+  b.className = 'error-box show';
+}
+
+function setLoading(on) {
+  document.getElementById('loading').className = 'loading' + (on ? ' show' : '');
+  document.getElementById('genBtn').disabled = on;
+  if (on) document.getElementById('results').className = 'results';
+}
+
+  function handleImageUpload(event, cardIndex) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target.result;
+      imageUrls[cardIndex] = url;
+      if (cards[cardIndex]) cards[cardIndex]._imgs = [url];
+      // show preview in options
+      const container = document.getElementById('imgOptions_' + cardIndex);
+      if (container) {
+        container.querySelectorAll('.img-option').forEach(i => i.classList.remove('selected'));
+        // add or replace upload preview
+        let prev = container.querySelector('.upload-preview');
+        if (!prev) {
+          prev = document.createElement('img');
+          prev.className = 'img-option upload-preview selected';
+          container.prepend(prev);
+        }
+        prev.src = url;
+        prev.classList.add('selected');
+        prev.onclick = () => {
+          container.querySelectorAll('.img-option').forEach(i => i.classList.remove('selected'));
+          prev.classList.add('selected');
+          imageUrls[cardIndex] = url;
+          if (currentIdx === cardIndex) renderCards();
+        };
+      }
+      if (currentIdx === cardIndex) renderCards();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderEditPanel() {
+    const container = document.getElementById('editRows');
+    if (!container) return;
+    container.innerHTML = '';
+    cards.forEach((card, i) => {
+      const row = document.createElement('div');
+      row.className = 'edit-card-row';
+      row.innerHTML = `
+        <div class="edit-card-num">0${i+1}</div>
+        <textarea class="edit-input edit-title-input" rows="2" id="editTitle_${i}" placeholder="제목">${card.title}</textarea>
+        <textarea class="edit-input" rows="2" id="editBody_${i}" placeholder="본문">${card.body}</textarea>
+        <div class="img-picker">
+          <span class="img-picker-label">배경 이미지</span>
+          <div class="img-options" id="imgOptions_${i}"></div>
+          <div class="img-search-row">
+            <input class="img-search-input" id="imgKeyword_${i}" placeholder="키워드 검색" value="${card.imageKeyword || ''}">
+            <button class="img-search-btn" onclick="searchImageForCard(${i}, document.getElementById('imgKeyword_${i}').value)">검색</button>
+          </div>
+          <label class="img-upload-btn" for="imgFile_${i}">📁 내 파일에서 업로드</label>
+          <input class="img-file-input" type="file" id="imgFile_${i}" accept="image/*" onchange="handleImageUpload(event, ${i})">
+        </div>`;
+      container.appendChild(row);
+      // populate existing images if available
+      if (card._imgs && card._imgs.length) renderImageOptions(i, card._imgs);
+    });
+  }
+
+  function applyEdits() {
+    cards.forEach((card, i) => {
+      const t = document.getElementById('editTitle_' + i);
+      const b = document.getElementById('editBody_' + i);
+      if (t) card.title = t.value;
+      if (b) card.body = b.value;
+    });
+    renderCards();
+    const btn = document.querySelector('.apply-btn');
+    btn.textContent = '✓ 반영됐어요!';
+    setTimeout(() => { btn.textContent = '✓ 수정사항 카드에 반영'; }, 1500);
+  }
+
+  async function downloadAllZip() {
+    const btn = document.getElementById('zipBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 생성 중...';
+    const zip = new JSZip();
+    const savedIdx = currentIdx;
+    for (let i = 0; i < cards.length; i++) {
+      currentIdx = i;
+      renderCards();
+      await new Promise(r => setTimeout(r, 400));
+      const child = document.getElementById('cardStage').firstElementChild;
+      if (!child) continue;
+      try {
+        const canvas = await html2canvas(child, { scale: 3, useCORS: true, backgroundColor: null });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        zip.file('card_' + String(i+1).padStart(2,'0') + '.png', blob);
+      } catch(e) { console.error(e); }
+    }
+    currentIdx = savedIdx;
+    renderCards();
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(zipBlob);
+    link.download = 'cardnews_all.zip';
+    link.click();
+    btn.disabled = false;
+    btn.textContent = '⬇ 전체 ZIP 다운로드';
+  }
+
+  // Font selector
+  window._cardFont = "'Noto Sans KR', sans-serif";
+
+  function changeFont(val) {
+    window._cardFont = val;
+    if (cards.length) renderCards();
+  }
+
+
+
+  // Plan & card count management
+  const PLAN_LIMITS = { free: 5, standard: 10, pro: 20 };
+  const PLAN_LABELS = { free: '무료: 최대 5장', standard: '스탠다드: 최대 10장', pro: 'PRO: 최대 20장' };
+  window._currentPlan = 'free';
+
+  function setPlan(plan, btn) {
+    window._currentPlan = plan;
+    document.querySelectorAll('.plan-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateCardCountOptions(plan);
+    document.getElementById('cardLimitNote').textContent = PLAN_LABELS[plan];
+  }
+
+  function updateCardCountOptions(plan) {
+    const max = PLAN_LIMITS[plan];
+    const sel = document.getElementById('cardCount');
+    const prev = parseInt(sel.value) || 5;
+    sel.innerHTML = '';
+    for (let n = 3; n <= max; n++) {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n + '장';
+      if (n === Math.min(prev, max)) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  // Initialize card count options on load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateCardCountOptions('free');
+    const sel = document.getElementById('fontSelect');
+    if (sel) sel.addEventListener('change', function() { changeFont(this.value); });
+  });
+
+
+  // ─── SUPABASE AUTH & PLAN SYSTEM ───
+  const SUPABASE_URL  = 'https://btanctkdxluznzxzuzuq.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0YW5jdGtkeGx1em56eHp1enVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MDU0NjQsImV4cCI6MjA5NDk4MTQ2NH0.vbgfWlI7T_LlEX-do8oULxE_HBZeiJT_TiQJW0znxFk';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const PLAN_MAX_CARDS = { free:5, standard:10, pro:20 };
+  const PLAN_LABEL     = { free:'무료', standard:'스탠다드', pro:'PRO' };
+  const PLAN_BADGE_CLS = { free:'badge-free', standard:'badge-standard', pro:'badge-pro' };
+  let currentUser = null;
+  let signupPlan  = 'free';
+
+  // 페이지 로드 시 기존 세션 복원
+  window.addEventListener('DOMContentLoaded', async () => {
+    updateCardCountOptions('free');
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) await loadUserProfile(session.access_token);
+  });
+
+  function showAuthTab(tab, btn) {
+    document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('loginForm').style.display  = tab === 'login'  ? '' : 'none';
+    document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
+  }
+
+  function selectSignupPlan(p) {
+    signupPlan = p;
+    ['free','standard','pro'].forEach(x => document.getElementById('sopt_'+x).classList.remove('sel'));
+    document.getElementById('sopt_'+p).classList.add('sel');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw    = document.getElementById('loginPw').value;
+    const err   = document.getElementById('loginErr');
+    err.textContent = '';
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (error) { err.textContent = error.message.includes('Invalid') ? '이메일 또는 비밀번호가 틀렸어요.' : error.message; return; }
+      await loadUserProfile(data.session.access_token);
+    } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+  }
+
+  async function doSignup() {
+    const email = document.getElementById('signupEmail').value.trim();
+    const pw    = document.getElementById('signupPw').value;
+    const err   = document.getElementById('signupErr');
+    if (!email.includes('@')) { err.textContent = '올바른 이메일을 입력해주세요.'; return; }
+    if (pw.length < 6) { err.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
+    err.textContent = '';
+    try {
+      const { data, error } = await sb.auth.signUp({ email, password: pw });
+      if (error) { err.textContent = error.message; return; }
+      if (data.user && !data.session) {
+        err.style.color = '#27ae60';
+        err.textContent = '✓ 이메일을 확인해주세요. 인증 링크를 보내드렸어요.';
+        return;
+      }
+      if (data.session) await loadUserProfile(data.session.access_token);
+    } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+  }
+
+  async function loadUserProfile(token) {
+    try {
+      const res = await fetch('/api/user-profile', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) return;
+      const profile = await res.json();
+      currentUser = { ...profile, token };
+      enterApp();
+    } catch(e) { console.error('loadUserProfile:', e); }
+  }
+
+  function enterApp() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display  = 'block';
+    document.getElementById('navEmail').textContent = currentUser.email;
+    const badge = document.getElementById('navBadge');
+    badge.textContent = PLAN_LABEL[currentUser.plan] || '무료';
+    badge.className   = 'plan-badge ' + (PLAN_BADGE_CLS[currentUser.plan] || 'badge-free');
+    updateUsageBar();
+    updateCardCountByPlan();
+    document.getElementById('upgradeBanner').style.display = currentUser.plan === 'free' ? 'flex' : 'none';
+    updateBrandKitVisibility();
+    updateCustomTemplateLock();
+    updateBrandKitVisibility(); updateCustomTemplateLock();
+  }
+
+  async function doLogout() {
+    await sb.auth.signOut();
+    currentUser = null;
+    document.getElementById('appScreen').style.display  = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('results').className = 'results';
+  }
+
+  function updateUsageBar() {
+    const { usage, maxUsage } = currentUser;
+    const isInf = !maxUsage || maxUsage === Infinity;
+    const pct   = isInf ? Math.min((usage/50)*100,100) : (usage/maxUsage)*100;
+    document.getElementById('usageText').textContent =
+      isInf ? `이번 달 ${usage}회 사용` : `이번 달 ${usage} / ${maxUsage}회`;
+    const fill = document.getElementById('usageFill');
+    fill.style.width = Math.min(pct,100) + '%';
+    fill.className = 'usage-fill' + (pct >= 100 ? ' full' : pct >= 70 ? ' warn' : '');
+  }
+
+  function updateCardCountByPlan() {
+    if (!currentUser) return;
+    updateCardCountOptions(currentUser.plan);
+  }
+
+  function updateCardCountOptions(plan) {
+    const max = PLAN_MAX_CARDS[plan] || 5;
+    const sel = document.getElementById('cardCount');
+    if (!sel) return;
+    const prev = parseInt(sel.value) || 5;
+    sel.innerHTML = '';
+    for (let n = 3; n <= max; n++) {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = n + '장';
+      if (n === Math.min(prev, max)) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    const lb = document.getElementById('cardLimitNote');
+    if (lb) { lb.textContent = `최대 ${max}장`; lb.className = `limit-note limit-${plan}`; }
+  }
+
+  function openUpgradeModal()  { document.getElementById('upgradeModal').style.display = 'flex'; }
+  function closeUpgradeModal() { document.getElementById('upgradeModal').style.display = 'none'; }
+
+  async function upgradeTo(plan) {
+    closeUpgradeModal();
+    alert(`${PLAN_LABEL[plan]} 플랜 업그레이드는 준비 중이에요.\n곧 결제 기능이 추가될 예정입니다!`);
+  }
+
+  // ─── BRAND KIT ───
+  window._brandColor = null;
+  window._brandLogo  = null;
+
+  function onBrandColorInput(val) {
+    document.getElementById('brandColorHex').value = val;
+  }
+  function onBrandHexInput(val) {
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      document.getElementById('brandColor').value = val;
+    }
+  }
+  function handleLogoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      window._brandLogo = ev.target.result;
+      const prev = document.getElementById('logoPreview');
+      prev.src = ev.target.result;
+      prev.style.display = 'block';
+      document.getElementById('logoUploadText').textContent = '✓ ' + file.name;
+      document.getElementById('logoRemoveBtn').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeLogo() {
+    window._brandLogo = null;
+    document.getElementById('logoPreview').style.display = 'none';
+    document.getElementById('logoPreview').src = '';
+    document.getElementById('logoUploadText').textContent = '📁 로고 이미지 업로드';
+    document.getElementById('logoRemoveBtn').style.display = 'none';
+    document.getElementById('logoFile').value = '';
+    if (cards.length) renderCards();
+  }
+  function applyBrandKit() {
+    window._brandColor = document.getElementById('brandColorHex').value || '#e84040';
+    if (cards.length) renderCards();
+    const btn = document.querySelector('.brand-apply-btn');
+    btn.textContent = '✓ 적용됐어요!';
+    setTimeout(() => { btn.textContent = '✓ 브랜드 적용하기'; }, 1500);
+  }
+
+  // Show/hide brand kit based on plan
+  function updateBrandKitVisibility() {
+    const kit = document.getElementById('brandKit');
+    if (kit) kit.classList.toggle('visible', currentUser && currentUser.plan === 'pro');
+
+    const wmSection = document.getElementById('watermarkSection');
+    const wmInput   = document.getElementById('watermarkText');
+    const wmLock    = document.getElementById('watermarkLockNote');
+    if (!wmSection || !wmInput) return;
+
+    const plan = currentUser ? currentUser.plan : 'free';
+    wmSection.style.display = (plan === 'free' || plan === 'standard' || plan === 'pro') ? '' : 'none';
+
+    if (plan === 'free') {
+      wmInput.value = 'CARD.AI';
+      wmInput.disabled = true;
+      wmInput.style.color = '#aaa';
+      wmLock.style.display = 'inline';
+      window._watermarkText = 'CARD.AI';
+    } else {
+      wmInput.disabled = false;
+      wmInput.style.color = 'var(--ink)';
+      wmLock.style.display = 'none';
+      wmInput.placeholder = plan === 'pro'
+        ? '텍스트 입력 or 로고 업로드 (비우면 워터마크 없음)'
+        : '원하는 텍스트 입력 (비우면 워터마크 없음)';
+      window._watermarkText = wmInput.value;
+    }
+  }
+
+
+  // ─── CUSTOM TEMPLATE ───
+  window._customSettings = {
+    bg: '#1a1a2e', title: '#ffffff', body: '#cccccc',
+    accent: '#e84040', align: 'left', pos: 'center'
+  };
+
+  function tryCustomTemplate(btn) {
+    const plan = currentUser ? currentUser.plan : 'free';
+    if (plan === 'free') {
+      alert('커스텀 템플릿은 스탠다드 이상 플랜에서 사용 가능해요.\n업그레이드 후 이용해주세요!');
+      return;
+    }
+    switchTheme('custom', btn);
+    document.getElementById('customPanel').classList.add('visible');
+  }
+
+  function syncCustomColor(colorId, hexId) {
+    const val = document.getElementById(colorId).value;
+    document.getElementById(hexId).value = val;
+    livePreviewCustom();
+  }
+  function syncCustomHex(hexId, colorId) {
+    const val = document.getElementById(hexId).value;
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      document.getElementById(colorId).value = val;
+      livePreviewCustom();
+    }
+  }
+  function livePreviewCustom() {
+    window._customSettings = {
+      bg:      document.getElementById('cBgHex').value || '#1a1a2e',
+      title:   document.getElementById('cTitleHex').value || '#ffffff',
+      body:    document.getElementById('cBodyHex').value || '#cccccc',
+      accent:  document.getElementById('cAccentHex').value || '#e84040',
+      align:   document.getElementById('cAlign').value || 'left',
+      pos:     document.getElementById('cPos').value || 'center',
+      overlay: (parseInt(document.getElementById('cOverlay')?.value) || 60) / 100,
+    };
+    if (cards.length) renderCards();
+  }
+
+
+  // Show/hide custom lock based on plan
+  function updateCustomTemplateLock() {
+    const lock = document.getElementById('customTplLock');
+    const btn  = document.getElementById('customTplBtn');
+    if (!lock || !btn) return;
+    const plan = currentUser ? currentUser.plan : 'free';
+    lock.style.display = plan === 'free' ? 'block' : 'none';
+    btn.style.opacity  = plan === 'free' ? '0.5' : '1';
+  }
+
+
+  // Custom template image
+  window._customBgImage = null;
+
+  function handleCustomImg(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      window._customBgImage = ev.target.result;
+      const prev = document.getElementById('customImgPreview');
+      prev.src = ev.target.result;
+      prev.style.display = 'block';
+      document.getElementById('customImgText').textContent = '✓ ' + file.name;
+      document.getElementById('customImgRemove').style.display = 'block';
+      livePreviewCustom();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeCustomImg() {
+    window._customBgImage = null;
+    document.getElementById('customImgPreview').style.display = 'none';
+    document.getElementById('customImgPreview').src = '';
+    document.getElementById('customImgText').textContent = '📁 배경 이미지 업로드 (선택사항)';
+    document.getElementById('customImgRemove').style.display = 'none';
+    document.getElementById('customImgFile').value = '';
+    livePreviewCustom();
+  }
+
+</script>
+</body>
+</html>
