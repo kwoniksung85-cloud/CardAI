@@ -1746,20 +1746,20 @@ imagePrompt 규칙:
 
     renderCards();
     renderEditPanel();
-    const cleanThreads = (parsed.threads || ‘’)
-      .replace(/’/g, ‘’’)
-      .replace(/’/g, ‘’’);
-    document.getElementById(‘threadsText’).textContent = cleanThreads;
-    const cleanInsta = (parsed.instagram || ‘’)
-      .replace(/’/g, ‘’’)
-      .replace(/’/g, ‘’’);
-    document.getElementById(‘instagramText’).textContent = cleanInsta;
+    const cleanThreads = (parsed.threads || '')
+      .replace(/'/g, '‘')
+      .replace(/'/g, '’');
+    document.getElementById('threadsText').textContent = cleanThreads;
+    const cleanInsta = (parsed.instagram || '')
+      .replace(/'/g, '‘')
+      .replace(/'/g, '’');
+    document.getElementById('instagramText').textContent = cleanInsta;
     // Reset to cards tab
-    document.querySelectorAll(‘.result-tab’).forEach(b => b.classList.remove(‘active’));
-    document.querySelectorAll(‘.result-pane’).forEach(p => p.classList.remove(‘active’));
-    document.querySelector(‘.result-tab’).classList.add(‘active’);
-    document.getElementById(‘paneCards’).classList.add(‘active’);
-    document.getElementById(‘results’).className = ‘results show’;
+    document.querySelectorAll('.result-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.result-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.result-tab').classList.add('active');
+    document.getElementById('paneCards').classList.add('active');
+    document.getElementById('results').className = 'results show';
 
   } catch(e) {
     showErr('오류: ' + e.message);
