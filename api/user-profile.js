@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
       email: user.email,
       plan: profile.plan,
       usage: profile.usage_count,
-      maxUsage: PLAN_MAX[profile.plan] ?? 3, // null = pro 무제한
+      maxUsage: profile.plan in PLAN_MAX ? PLAN_MAX[profile.plan] : 3,
     });
 
   } catch (err) {
