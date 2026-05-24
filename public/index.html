@@ -2500,6 +2500,7 @@ function setLoading(on) {
 
       document.getElementById('results').className = 'results show';
       renderCards();
+      renderEditPanel();
       hideMyPage();
       setTimeout(() => document.getElementById('results').scrollIntoView({ behavior: 'smooth' }), 100);
     } catch(e) {
