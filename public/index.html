@@ -916,7 +916,11 @@ body {
 }
 .gen-card {
   background:#fff; border:1.5px solid var(--border); border-radius:10px;
-  overflow:hidden; cursor:default;
+  overflow:hidden; cursor:default; transition: border-color 0.15s, transform 0.15s;
+}
+.gen-card[onclick]:hover {
+  border-color: var(--accent); transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 .gen-thumb {
   width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--border);
@@ -1381,11 +1385,21 @@ async function generate() {
 
 async function saveGeneration() {
   const title = cards[0]?.title || document.getElementById('topic')?.value?.trim() || '카드뉴스';
-  const thumb = imageUrls[0]?.startsWith('https://') ? imageUrls[0] : null;
+  const safeUrls = imageUrls.map(u => (u && u.startsWith('https://')) ? u : null);
+  const thumb = safeUrls[0] || null;
   await fetch('/api/save-generation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentUser.token },
-    body: JSON.stringify({ title, thumbnailUrl: thumb, cardCount: cards.length }),
+    body: JSON.stringify({
+      title,
+      thumbnailUrl: thumb,
+      cardCount: cards.length,
+      cardsJson: JSON.stringify(cards),
+      imageUrlsJson: JSON.stringify(safeUrls),
+      threadsText: document.getElementById('threadsText').textContent,
+      theme: currentTheme,
+      topic: document.getElementById('topic').value.trim(),
+    }),
   });
 }
 
@@ -2460,6 +2474,36 @@ function setLoading(on) {
     document.getElementById('appScreen').style.display = 'block';
   }
 
+  function loadSavedGeneration(idx) {
+    const g = (window._myGenerations || [])[idx];
+    if (!g || !g.cards_json) return;
+    try {
+      const savedCards = JSON.parse(g.cards_json);
+      const savedUrls = JSON.parse(g.image_urls_json || '[]');
+      if (!savedCards || !savedCards.length) return;
+
+      cards = savedCards;
+      imageUrls = savedUrls.length ? savedUrls : savedCards.map(() => null);
+      currentIdx = 0;
+      currentTheme = g.theme || 'minimal';
+
+      if (g.topic) document.getElementById('topic').value = g.topic;
+      if (g.threads_text) document.getElementById('threadsText').textContent = g.threads_text;
+
+      document.querySelectorAll('.tpl-btn').forEach(b => {
+        const match = b.getAttribute('onclick')?.match(/switchTheme\('([^']+)'/);
+        b.classList.toggle('active', match ? match[1] === currentTheme : false);
+      });
+
+      document.getElementById('results').className = 'results show';
+      renderCards();
+      hideMyPage();
+      setTimeout(() => document.getElementById('results').scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch(e) {
+      console.error('loadSavedGeneration:', e);
+    }
+  }
+
   async function loadMyGenerations() {
     const PLAN_LABEL = { free: '무료', standard: '스탠다드', pro: '✦ PRO' };
     const PLAN_BADGE = { free: 'badge-free', standard: 'badge-standard', pro: 'badge-pro' };
@@ -2485,17 +2529,19 @@ function setLoading(on) {
         return;
       }
 
-      document.getElementById('mpGrid').innerHTML = generations.map(g => {
+      window._myGenerations = generations;
+      document.getElementById('mpGrid').innerHTML = generations.map((g, idx) => {
         const date = new Date(g.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const thumb = g.thumbnail_url
           ? `<img src="${g.thumbnail_url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
           : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:#f3f4f6;">🖼️</div>`;
+        const editable = g.cards_json ? 'cursor:pointer;' : 'cursor:default;';
         return `
-          <div class="gen-card">
+          <div class="gen-card" style="${editable}" onclick="loadSavedGeneration(${idx})" title="${g.cards_json ? '클릭하여 편집' : ''}">
             <div class="gen-thumb">${thumb}</div>
             <div class="gen-info">
               <div class="gen-title">${g.title}</div>
-              <div class="gen-meta">${g.card_count}장 · ${date}</div>
+              <div class="gen-meta">${g.card_count}장 · ${date}${g.cards_json ? ' · ✏️ 편집 가능' : ''}</div>
             </div>
           </div>`;
       }).join('');

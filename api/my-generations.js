@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
     const limit = PLAN_HISTORY_LIMIT[plan] ?? 5;
 
     const genRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/generations?user_id=eq.${user.id}&order=created_at.desc&limit=${limit}&select=id,title,thumbnail_url,card_count,created_at`,
+      `${SUPABASE_URL}/rest/v1/generations?user_id=eq.${user.id}&order=created_at.desc&limit=${limit}&select=id,title,thumbnail_url,card_count,created_at,cards_json,image_urls_json,threads_text,theme,topic`,
       { headers: headers() }
     );
     const generations = await genRes.json();

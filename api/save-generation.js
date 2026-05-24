@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
     const plan = (await profileRes.json())[0]?.plan || 'free';
     const limit = PLAN_HISTORY_LIMIT[plan] ?? 5;
 
-    const { title, thumbnailUrl, cardCount } = req.body;
+    const { title, thumbnailUrl, cardCount, cardsJson, imageUrlsJson, threadsText, theme, topic } = req.body;
 
     // 새 기록 저장
     await fetch(`${SUPABASE_URL}/rest/v1/generations`, {
@@ -45,6 +45,11 @@ module.exports = async (req, res) => {
         title: title || '카드뉴스',
         thumbnail_url: thumbnailUrl || null,
         card_count: cardCount || 1,
+        cards_json: cardsJson || null,
+        image_urls_json: imageUrlsJson || null,
+        threads_text: threadsText || null,
+        theme: theme || null,
+        topic: topic || null,
       }),
     });
 
