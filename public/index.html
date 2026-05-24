@@ -1241,7 +1241,7 @@ const palettes = [
 async function generate() {
   if (!currentUser) { showErr('로그인 후 이용해주세요.'); return; }
   const { usage, maxUsage } = currentUser;
-  if (maxUsage !== Infinity && usage >= maxUsage) {
+  if (maxUsage !== null && usage >= maxUsage) {
     showErr(`이번 달 생성 횟수(${maxUsage}회)를 모두 사용했어요. 업그레이드해주세요.`);
     document.getElementById('upgradeBanner').style.display = 'flex';
     return;

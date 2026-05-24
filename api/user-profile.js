@@ -62,14 +62,14 @@ module.exports = async (req, res) => {
       profile.usage_count = 0;
     }
 
-    const PLAN_MAX = { free: 3, standard: 30, pro: Infinity };
+    const PLAN_MAX = { free: 3, standard: 30, pro: null };
 
     res.json({
       id: user.id,
       email: user.email,
       plan: profile.plan,
       usage: profile.usage_count,
-      maxUsage: PLAN_MAX[profile.plan] ?? 3,
+      maxUsage: PLAN_MAX[profile.plan] ?? 3, // null = pro 무제한
     });
 
   } catch (err) {

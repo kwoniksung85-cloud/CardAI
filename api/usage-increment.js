@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
 
     res.json({
       usage: profile.usage_count + 1,
-      maxUsage: maxUsage ?? Infinity,
+      maxUsage: maxUsage, // null = pro 무제한
       plan: profile.plan
     });
 
