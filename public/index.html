@@ -1306,7 +1306,7 @@ async function generateImageWithGemini(keyword, cardTitle, fallbackSeed) {
     const res = await fetch('/api/gemini-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt, keyword })
     });
     const data = await res.json();
     if (data.imageUrl) return data.imageUrl;

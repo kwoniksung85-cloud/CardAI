@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { prompt } = req.body;
+    const { prompt, keyword } = req.body;
 
     const models = [
       'gemini-2.0-flash-exp-image-generation',
@@ -56,6 +56,27 @@ module.exports = async (req, res) => {
       } catch (e) {
         console.error(`[gemini-image] model=${model} exception:`, e.message);
         continue;
+      }
+    }
+
+    // Gemini 실패 시 Unsplash 폴백
+    const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
+    if (unsplashKey && keyword) {
+      try {
+        const q = encodeURIComponent(keyword.split(',')[0].trim());
+        const uRes = await fetch(
+          `https://api.unsplash.com/search/photos?query=${q}&per_page=1&orientation=squarish`,
+          { headers: { 'Authorization': `Client-ID ${unsplashKey}` } }
+        );
+        if (uRes.ok) {
+          const uData = await uRes.json();
+          const photo = uData.results?.[0];
+          if (photo?.urls?.regular) {
+            return res.json({ imageUrl: photo.urls.regular });
+          }
+        }
+      } catch (e) {
+        console.error('[gemini-image] Unsplash fallback error:', e.message);
       }
     }
 
