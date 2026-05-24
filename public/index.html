@@ -423,6 +423,32 @@ body {
 .copy-btn:hover { border-color: var(--ink); }
 .copy-btn.done { border-color: #27ae60; color: #27ae60; }
 
+/* RESULT TABS */
+.result-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--ink);
+}
+.result-tab {
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.result-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.result-tab:hover { color: var(--ink); }
+.result-pane { display: none; }
+.result-pane.active { display: block; }
+
 /* LOADING */
 .loading {
   text-align: center;
@@ -1133,7 +1159,15 @@ body {
       <button class="brand-apply-btn" onclick="applyBrandKit()">✓ 브랜드 적용하기</button>
     </div>
 
-    <div class="section-title">카드뉴스 미리보기</div>
+    <!-- RESULT TABS -->
+    <div class="result-tabs">
+      <button class="result-tab active" onclick="switchResultTab('Cards',this)">📸 카드뉴스</button>
+      <button class="result-tab" onclick="switchResultTab('Threads',this)">✍️ 쓰레드 텍스트</button>
+      <button class="result-tab" onclick="switchResultTab('Instagram',this)">📱 인스타 캡션</button>
+    </div>
+
+    <!-- PANE: 카드뉴스 -->
+    <div class="result-pane active" id="paneCards">
 
     <div class="template-grid" id="templateGrid">
       <button class="tpl-btn active" onclick="switchTheme('minimal',this)" title="미니멀">
@@ -1286,14 +1320,29 @@ body {
       <button class="apply-btn" onclick="applyEdits()">✓ 수정사항 카드에 반영</button>
     </div>
 
-    <div class="section-title">쓰레드 텍스트</div>
-    <div class="threads-box">
-      <div class="threads-label">THREADS</div>
-      <div class="threads-text" id="threadsText"></div>
-      <div class="threads-actions">
-        <button class="copy-btn" id="copyBtn" onclick="copyThreads()">📋 복사하기</button>
+    </div><!-- /paneCards -->
+
+    <!-- PANE: 쓰레드 텍스트 -->
+    <div class="result-pane" id="paneThreads">
+      <div class="threads-box">
+        <div class="threads-label">THREADS</div>
+        <div class="threads-text" id="threadsText"></div>
+        <div class="threads-actions">
+          <button class="copy-btn" id="copyBtn" onclick="copyThreads()">📋 복사하기</button>
+        </div>
       </div>
-    </div>
+    </div><!-- /paneThreads -->
+
+    <!-- PANE: 인스타 캡션 -->
+    <div class="result-pane" id="paneInstagram">
+      <div class="threads-box">
+        <div class="threads-label">INSTAGRAM</div>
+        <div class="threads-text" id="instagramText"></div>
+        <div class="threads-actions">
+          <button class="copy-btn" id="copyInstaBtn" onclick="copyInstagram()">📋 복사하기</button>
+        </div>
+      </div>
+    </div><!-- /paneInstagram -->
 
   </div>
     </div><!-- /wrap -->
@@ -1411,6 +1460,7 @@ async function saveGeneration() {
       cardsJson: JSON.stringify(cleanCards),
       imageUrlsJson: JSON.stringify(safeUrls),
       threadsText: document.getElementById('threadsText').textContent,
+      instagramCaption: document.getElementById('instagramText').textContent,
       theme: currentTheme,
       topic: document.getElementById('topic').value.trim(),
     }),
@@ -1579,7 +1629,8 @@ async function _doGenerate() {
       "imagePrompt": "specific English image prompt reflecting card topic (5-8 keywords, comma-separated)"
     }
   ],
-  "threads": "쓰레드 텍스트"
+  "threads": "쓰레드 텍스트",
+  "instagram": "인스타그램 캡션 전체 텍스트"
 }
 
 imagePrompt 규칙:
@@ -1617,7 +1668,20 @@ imagePrompt 규칙:
 - 맞춤법 완벽하게. 오타 절대 금지
 - 첫 줄에 훅, 마지막은 여운 있게 끝내기
 - 이모지 1개만, 중간이나 마지막에 자연스럽게
-- 300자 내외`;
+- 300자 내외
+
+인스타그램 캡션 규칙 (매우 중요):
+구조를 정확히 따를 것:
+
+1) 훅 1줄: 이모지 포함, 강렬한 첫 문장. 스크롤 멈추게 하는 한 줄
+(빈 줄)
+2) 본문 3~5줄: 카드뉴스 핵심 내용 요약. 줄간격 있게 (각 줄 끝에 줄바꿈)
+(빈 줄)
+3) CTA 1줄: "저장해두면 나중에 써먹을 수 있음" 또는 "팔로우하면 이런 정보 계속 올라옴" 류의 자연스러운 유도 문구
+(빈 줄)
+4) 해시태그: 관련 태그 10~15개, #붙여서 한 줄에 나열
+
+말투: 구어체, AI 티 안 나게, "당신" 금지, "~임" "~됨" 스타일`;
 
   try {
     const res = await fetch('/api/generate', {
@@ -1644,13 +1708,15 @@ imagePrompt 규칙:
     if (!raw.endsWith('}')) {
       const lastCard = raw.lastIndexOf('}');
       if (lastCard > 0) {
-        // Find threads key - if missing, close the array and add placeholder
+        // Find threads/instagram keys - add placeholders if missing
         const hasThreads = raw.includes('"threads"');
+        const hasInsta = raw.includes('"instagram"');
         raw = raw.substring(0, lastCard + 1);
-        const openBracket = raw.lastIndexOf('[');
         const closedCards = raw.substring(0, lastCard + 1);
         if (!hasThreads) {
-          raw = closedCards.replace(/,\s*$/, '') + '],"threads":"카드뉴스를 확인해보세요."}';
+          raw = closedCards.replace(/,\s*$/, '') + '],"threads":"카드뉴스를 확인해보세요.","instagram":""}';
+        } else if (!hasInsta) {
+          raw = closedCards + ',"instagram":""}';
         } else {
           raw = closedCards + '}';
         }
@@ -1680,11 +1746,20 @@ imagePrompt 규칙:
 
     renderCards();
     renderEditPanel();
-    const cleanThreads = parsed.threads
-      .replace(/'/g, '‘')
-      .replace(/'/g, '’');
-    document.getElementById('threadsText').textContent = cleanThreads;
-    document.getElementById('results').className = 'results show';
+    const cleanThreads = (parsed.threads || ‘’)
+      .replace(/’/g, ‘’’)
+      .replace(/’/g, ‘’’);
+    document.getElementById(‘threadsText’).textContent = cleanThreads;
+    const cleanInsta = (parsed.instagram || ‘’)
+      .replace(/’/g, ‘’’)
+      .replace(/’/g, ‘’’);
+    document.getElementById(‘instagramText’).textContent = cleanInsta;
+    // Reset to cards tab
+    document.querySelectorAll(‘.result-tab’).forEach(b => b.classList.remove(‘active’));
+    document.querySelectorAll(‘.result-pane’).forEach(p => p.classList.remove(‘active’));
+    document.querySelector(‘.result-tab’).classList.add(‘active’);
+    document.getElementById(‘paneCards’).classList.add(‘active’);
+    document.getElementById(‘results’).className = ‘results show’;
 
   } catch(e) {
     showErr('오류: ' + e.message);
@@ -1920,10 +1995,27 @@ async function downloadCard() {
   }
 }
 
+function switchResultTab(name, btn) {
+  document.querySelectorAll('.result-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.result-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pane' + name).classList.add('active');
+}
+
 function copyThreads() {
   const text = document.getElementById('threadsText').textContent;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    btn.className = 'copy-btn done';
+    setTimeout(() => { btn.textContent = '📋 복사하기'; btn.className = 'copy-btn'; }, 2000);
+  });
+}
+
+function copyInstagram() {
+  const text = document.getElementById('instagramText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyInstaBtn');
     btn.textContent = '✓ 복사됨';
     btn.className = 'copy-btn done';
     setTimeout(() => { btn.textContent = '📋 복사하기'; btn.className = 'copy-btn'; }, 2000);

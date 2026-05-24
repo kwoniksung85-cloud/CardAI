@@ -64,6 +64,12 @@ CREATE TRIGGER profiles_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ============================================
+-- 마이그레이션: instagram_caption 컬럼 추가
+-- generations 테이블이 이미 있는 경우 아래 실행:
+ALTER TABLE generations ADD COLUMN IF NOT EXISTS instagram_caption TEXT;
+-- ============================================
+
+-- ============================================
 -- 플랜별 제한값 (참고용)
 -- free:     월 3회,  최대 5장
 -- standard: 월 30회, 최대 10장
