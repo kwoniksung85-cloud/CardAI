@@ -898,8 +898,8 @@ body {
       <button class="auth-tab" onclick="showAuthTab('signup',this)">회원가입</button>
     </div>
     <div id="loginForm">
-      <div class="auth-field"><label>이메일</label><input type="email" id="loginEmail" placeholder="example@email.com"></div>
-      <div class="auth-field"><label>비밀번호</label><input type="password" id="loginPw" placeholder="비밀번호 입력"></div>
+      <div class="auth-field"><label>이메일</label><input type="email" id="loginEmail" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="auth-field"><label>비밀번호</label><input type="password" id="loginPw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="auth-btn" onclick="doLogin()">로그인</button>
       <div class="auth-err" id="loginErr"></div>
     </div>
