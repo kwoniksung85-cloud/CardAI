@@ -1386,7 +1386,19 @@ async function generate() {
 async function saveGeneration() {
   const title = cards[0]?.title || document.getElementById('topic')?.value?.trim() || '카드뉴스';
   const safeUrls = imageUrls.map(u => (u && u.startsWith('https://')) ? u : null);
-  const thumb = safeUrls[0] || null;
+
+  // 썸네일: Unsplash URL 우선, 없으면 html2canvas로 첫 카드 캡처 (80px JPEG)
+  let thumb = safeUrls[0] || null;
+  if (!thumb) {
+    try {
+      const stage = document.getElementById('cardStage');
+      if (stage && stage.firstElementChild) {
+        const canvas = await html2canvas(stage.firstElementChild, { scale: 0.25, useCORS: true, backgroundColor: null });
+        thumb = canvas.toDataURL('image/jpeg', 0.6);
+      }
+    } catch(e) { console.error('thumbnail capture:', e); }
+  }
+
   // _imgs(base64) 제거 후 직렬화 — Vercel 요청 크기 초과 방지
   const cleanCards = cards.map(({ _imgs, ...rest }) => rest);
   const res = await fetch('/api/save-generation', {
