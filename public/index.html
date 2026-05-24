@@ -2035,12 +2035,20 @@ function setLoading(on) {
     document.querySelector('.auth-tabs').style.display = '';
   }
 
+  function setAuthLoading(formId, loading, loadingText) {
+    const btn = document.querySelector('#' + formId + ' .auth-btn');
+    if (!btn) return;
+    if (loading) { btn._orig = btn.textContent; btn.textContent = loadingText; btn.disabled = true; }
+    else { btn.textContent = btn._orig || btn.textContent; btn.disabled = false; }
+  }
+
   async function doResetPassword() {
     const email = document.getElementById('resetEmail').value.trim();
     const err   = document.getElementById('resetErr');
     err.textContent = '';
     err.style.color = '#e84040';
     if (!email.includes('@')) { err.textContent = '올바른 이메일을 입력해주세요.'; return; }
+    setAuthLoading('resetForm', true, '전송 중...');
     try {
       const { error } = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin
@@ -2049,6 +2057,7 @@ function setLoading(on) {
       err.style.color = '#27ae60';
       err.textContent = '✓ 재설정 링크를 보내드렸어요. 이메일을 확인해주세요.';
     } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+    finally { setAuthLoading('resetForm', false); }
   }
 
   async function doUpdatePassword() {
@@ -2059,6 +2068,7 @@ function setLoading(on) {
     err.style.color = '#e84040';
     if (pw.length < 6) { err.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
     if (pw !== pwConf) { err.textContent = '비밀번호가 일치하지 않아요.'; return; }
+    setAuthLoading('newPwForm', true, '변경 중...');
     try {
       const { error } = await sb.auth.updateUser({ password: pw });
       if (error) { err.textContent = error.message; return; }
@@ -2071,6 +2081,7 @@ function setLoading(on) {
         window.history.replaceState(null, '', window.location.pathname);
       }, 1500);
     } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+    finally { setAuthLoading('newPwForm', false); }
   }
 
   function selectSignupPlan(p) {
@@ -2084,11 +2095,13 @@ function setLoading(on) {
     const pw    = document.getElementById('loginPw').value;
     const err   = document.getElementById('loginErr');
     err.textContent = '';
+    setAuthLoading('loginForm', true, '로그인 중...');
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
       if (error) { err.textContent = error.message.includes('Invalid') ? '이메일 또는 비밀번호가 틀렸어요.' : error.message; return; }
       await loadUserProfile(data.session.access_token);
     } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+    finally { setAuthLoading('loginForm', false); }
   }
 
   async function doSignup() {
@@ -2098,6 +2111,7 @@ function setLoading(on) {
     if (!email.includes('@')) { err.textContent = '올바른 이메일을 입력해주세요.'; return; }
     if (pw.length < 6) { err.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
     err.textContent = '';
+    setAuthLoading('signupForm', true, '가입 중...');
     try {
       const { data, error } = await sb.auth.signUp({ email, password: pw });
       if (error) { err.textContent = error.message; return; }
@@ -2108,6 +2122,7 @@ function setLoading(on) {
       }
       if (data.session) await loadUserProfile(data.session.access_token);
     } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+    finally { setAuthLoading('signupForm', false); }
   }
 
   async function loadUserProfile(token) {
