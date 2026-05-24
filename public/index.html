@@ -1550,13 +1550,11 @@ imagePrompt 규칙:
     // fetch images per selected source
     const imgSource = window._imgSource || 'gemini';
     if (imgSource === 'gemini') {
-      document.querySelector('.loading p').textContent = 'AI 배경 이미지 생성 중... (카드당 5~10초)';
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i];
-        document.querySelector('.loading p').textContent = `AI 이미지 생성 중... (${i+1}/${cards.length})`;
+      document.querySelector('.loading p').textContent = `AI 배경 이미지 ${cards.length}장 동시 생성 중...`;
+      await Promise.all(cards.map(async (card, i) => {
         const url = await generateImageWithGemini(card.imagePrompt || card.imageKeyword || 'abstract', card.title, i * 41 + (i+1));
         if (url) { imageUrls[i] = url; card._imgs = [url]; }
-      }
+      }));
     } else if (imgSource === 'unsplash') {
       await Promise.all(cards.map(async (card, i) => {
         const imgs = await fetchUnsplashImages(card.imagePrompt || card.imageKeyword || 'abstract', i, 4);
