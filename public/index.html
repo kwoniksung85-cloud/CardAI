@@ -423,14 +423,15 @@ body {
 .copy-btn:hover { border-color: var(--ink); }
 .copy-btn.done { border-color: #27ae60; color: #27ae60; }
 
-/* RESULT TABS */
-.result-tabs {
+/* TEXT TABS (쓰레드 / 인스타 캡션) */
+.text-tabs {
   display: flex;
   gap: 0;
-  margin-bottom: 24px;
+  margin-top: 32px;
+  margin-bottom: 0;
   border-bottom: 2px solid var(--ink);
 }
-.result-tab {
+.text-tab {
   padding: 10px 22px;
   font-size: 13px;
   font-weight: 700;
@@ -444,10 +445,10 @@ body {
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
 }
-.result-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
-.result-tab:hover { color: var(--ink); }
-.result-pane { display: none; }
-.result-pane.active { display: block; }
+.text-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.text-tab:hover { color: var(--ink); }
+.text-pane { display: none; }
+.text-pane.active { display: block; }
 
 /* LOADING */
 .loading {
@@ -1159,16 +1160,6 @@ body {
       <button class="brand-apply-btn" onclick="applyBrandKit()">✓ 브랜드 적용하기</button>
     </div>
 
-    <!-- RESULT TABS -->
-    <div class="result-tabs">
-      <button class="result-tab active" onclick="switchResultTab('Cards',this)">📸 카드뉴스</button>
-      <button class="result-tab" onclick="switchResultTab('Threads',this)">✍️ 쓰레드 텍스트</button>
-      <button class="result-tab" onclick="switchResultTab('Instagram',this)">📱 인스타 캡션</button>
-    </div>
-
-    <!-- PANE: 카드뉴스 -->
-    <div class="result-pane active" id="paneCards">
-
     <div class="template-grid" id="templateGrid">
       <button class="tpl-btn active" onclick="switchTheme('minimal',this)" title="미니멀">
         <div class="tpl-preview tpl-minimal"></div><span>미니멀</span>
@@ -1320,10 +1311,13 @@ body {
       <button class="apply-btn" onclick="applyEdits()">✓ 수정사항 카드에 반영</button>
     </div>
 
-    </div><!-- /paneCards -->
+    <!-- TEXT TABS: 쓰레드 / 인스타 캡션 -->
+    <div class="text-tabs">
+      <button class="text-tab active" onclick="switchTextTab('Threads',this)">✍️ 쓰레드 텍스트</button>
+      <button class="text-tab" onclick="switchTextTab('Instagram',this)">📱 인스타 캡션</button>
+    </div>
 
-    <!-- PANE: 쓰레드 텍스트 -->
-    <div class="result-pane" id="paneThreads">
+    <div class="text-pane active" id="tabThreads">
       <div class="threads-box">
         <div class="threads-label">THREADS</div>
         <div class="threads-text" id="threadsText"></div>
@@ -1331,10 +1325,9 @@ body {
           <button class="copy-btn" id="copyBtn" onclick="copyThreads()">📋 복사하기</button>
         </div>
       </div>
-    </div><!-- /paneThreads -->
+    </div>
 
-    <!-- PANE: 인스타 캡션 -->
-    <div class="result-pane" id="paneInstagram">
+    <div class="text-pane" id="tabInstagram">
       <div class="threads-box">
         <div class="threads-label">INSTAGRAM</div>
         <div class="threads-text" id="instagramText"></div>
@@ -1342,7 +1335,7 @@ body {
           <button class="copy-btn" id="copyInstaBtn" onclick="copyInstagram()">📋 복사하기</button>
         </div>
       </div>
-    </div><!-- /paneInstagram -->
+    </div>
 
   </div>
     </div><!-- /wrap -->
@@ -1754,11 +1747,11 @@ imagePrompt 규칙:
       .replace(/'/g, '‘')
       .replace(/'/g, '’');
     document.getElementById('instagramText').textContent = cleanInsta;
-    // Reset to cards tab
-    document.querySelectorAll('.result-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.result-pane').forEach(p => p.classList.remove('active'));
-    document.querySelector('.result-tab').classList.add('active');
-    document.getElementById('paneCards').classList.add('active');
+    // Reset to threads tab
+    document.querySelectorAll('.text-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.text-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.text-tab').classList.add('active');
+    document.getElementById('tabThreads').classList.add('active');
     document.getElementById('results').className = 'results show';
 
   } catch(e) {
@@ -1995,11 +1988,11 @@ async function downloadCard() {
   }
 }
 
-function switchResultTab(name, btn) {
-  document.querySelectorAll('.result-tab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.result-pane').forEach(p => p.classList.remove('active'));
+function switchTextTab(name, btn) {
+  document.querySelectorAll('.text-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.text-pane').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('pane' + name).classList.add('active');
+  document.getElementById('tab' + name).classList.add('active');
 }
 
 function copyThreads() {
