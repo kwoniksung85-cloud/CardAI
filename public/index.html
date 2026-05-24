@@ -2574,7 +2574,7 @@ function setLoading(on) {
     document.getElementById('appScreen').style.display = 'block';
   }
 
-  function loadSavedGeneration(idx) {
+  async function loadSavedGeneration(idx) {
     const g = (window._myGenerations || [])[idx];
     if (!g || !g.cards_json) return;
     try {
@@ -2589,6 +2589,12 @@ function setLoading(on) {
 
       if (g.topic) document.getElementById('topic').value = g.topic;
       if (g.threads_text) document.getElementById('threadsText').textContent = g.threads_text;
+      if (g.instagram_caption) document.getElementById('instagramText').textContent = g.instagram_caption;
+
+      document.querySelectorAll('.text-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.text-pane').forEach(p => p.classList.remove('active'));
+      document.querySelector('.text-tab').classList.add('active');
+      document.getElementById('tabThreads').classList.add('active');
 
       document.querySelectorAll('.tpl-btn').forEach(b => {
         const match = b.getAttribute('onclick')?.match(/switchTheme\('([^']+)'/);
@@ -2600,6 +2606,16 @@ function setLoading(on) {
       renderEditPanel();
       hideMyPage();
       setTimeout(() => document.getElementById('results').scrollIntoView({ behavior: 'smooth' }), 100);
+
+      const nullSlots = imageUrls.map((u, i) => u ? null : i).filter(i => i !== null);
+      if (nullSlots.length) {
+        await Promise.all(nullSlots.map(async (i) => {
+          const card = cards[i];
+          const url = await generateImageWithGemini(card.imagePrompt || card.title, card.title, i * 41 + (card.num || i + 1));
+          imageUrls[i] = url;
+        }));
+        renderCards();
+      }
     } catch(e) {
       console.error('loadSavedGeneration:', e);
     }
