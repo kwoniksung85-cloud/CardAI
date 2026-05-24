@@ -3,360 +3,628 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CARD.AI — AI 카드뉴스 생성기</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<title>CARD.AI — AI 카드뉴스 자동 생성</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-:root {
-  --bg: #f5f3ef;
-  --ink: #1a1a1a;
-  --muted: #888;
-  --border: #ddd;
-  --accent: #e84040;
+@font-face {
+  font-family: 'NanumSquareNeo';
+  font-weight: 700;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_eleven@1.0/NanumSquareNeoTTF-cBd.woff2') format('woff2');
 }
-
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  min-height: 100vh;
-}
-
-/* NAV */
-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  height: 60px;
-  border-bottom: 1.5px solid var(--border);
-  background: var(--bg);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.nav-logo {
-  font-size: 18px;
+@font-face {
+  font-family: 'NanumSquareNeo';
   font-weight: 900;
-  letter-spacing: -0.5px;
-  font-family: 'Space Mono', monospace;
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_eleven@1.0/NanumSquareNeoTTF-eExBd.woff2') format('woff2');
 }
-.nav-logo span { color: var(--accent); }
-.nav-cta {
-  background: var(--ink);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 20px;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity 0.15s;
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --black:#0a0a0a;
+  --surface:#111111;
+  --surface2:#181818;
+  --white:#f0ece4;
+  --muted:#6b6760;
+  --accent:#e8402a;
+  --accent-hover:#c73520;
+  --gold:#f0a500;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
 }
-.nav-cta:hover { opacity: 0.8; }
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--black);color:var(--white);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
 
-/* HERO */
-.hero {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 80px 24px 64px;
-  text-align: center;
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:0 48px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,10,10,0.9);
+  backdrop-filter:blur(16px);
 }
-.hero-badge {
-  display: inline-block;
-  background: #fff5f5;
-  border: 1.5px solid #ffd0d0;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 100px;
-  padding: 5px 14px;
-  margin-bottom: 24px;
-  letter-spacing: 0.3px;
+.nav-logo{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:20px;letter-spacing:3px;
+  color:var(--white);text-decoration:none;
 }
-.hero h1 {
-  font-size: clamp(32px, 6vw, 52px);
-  font-weight: 900;
-  line-height: 1.2;
-  letter-spacing: -1.5px;
-  margin-bottom: 20px;
+.nav-logo span{color:var(--accent);}
+.nav-links{display:flex;align-items:center;gap:36px;}
+.nav-links a{
+  font-size:13px;font-weight:500;color:var(--muted);
+  text-decoration:none;transition:color .2s;letter-spacing:.3px;
 }
-.hero h1 em {
-  font-style: normal;
-  color: var(--accent);
+.nav-links a:hover{color:var(--white);}
+.btn-nav{
+  padding:9px 22px;
+  background:var(--accent);color:#fff;
+  border-radius:4px;font-size:13px;font-weight:700;
+  text-decoration:none;transition:all .2s;
 }
-.hero p {
-  font-size: 16px;
-  color: var(--muted);
-  line-height: 1.7;
-  margin-bottom: 36px;
+.btn-nav:hover{background:var(--accent-hover);transform:translateY(-1px);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:120px 48px 80px;
+  position:relative;overflow:hidden;
 }
-.hero-btn {
-  display: inline-block;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 10px;
-  padding: 14px 36px;
-  text-decoration: none;
-  transition: opacity 0.15s, transform 0.15s;
+.hero::before{
+  content:'';position:absolute;
+  top:-200px;right:-100px;
+  width:700px;height:700px;
+  background:radial-gradient(circle,rgba(232,64,42,0.08) 0%,transparent 70%);
+  pointer-events:none;
 }
-.hero-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-.hero-sub {
-  display: block;
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--muted);
+.hero::after{
+  content:'';position:absolute;
+  bottom:-100px;left:-200px;
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(240,165,0,0.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;
+  border:1px solid rgba(232,64,42,0.3);
+  border-radius:100px;
+  font-size:12px;font-weight:500;color:var(--accent);
+  letter-spacing:.5px;margin-bottom:32px;width:fit-content;
+}
+.hero-badge::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--accent);animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.hero-title{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;
+  font-size:clamp(48px,7vw,88px);
+  line-height:1.05;letter-spacing:-2px;
+  margin-bottom:28px;
+  position:relative;z-index:1;
+}
+.hero-title .accent{color:var(--accent);}
+.hero-title .line2{
+  display:block;
+  background:linear-gradient(135deg,var(--white) 0%,rgba(240,236,228,0.5) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero-sub{
+  font-size:17px;line-height:1.7;color:var(--muted);
+  max-width:480px;margin-bottom:44px;position:relative;z-index:1;
+}
+.hero-sub strong{color:var(--white);font-weight:500;}
+.hero-cta{display:flex;align-items:center;gap:16px;position:relative;z-index:1;}
+.btn-primary{
+  padding:16px 36px;
+  background:var(--accent);color:#fff;
+  border-radius:4px;font-size:15px;font-weight:700;
+  text-decoration:none;transition:all .25s;
+  letter-spacing:.3px;
+}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-2px);box-shadow:0 12px 32px rgba(232,64,42,0.25);}
+.btn-ghost{
+  padding:16px 28px;
+  border:1px solid var(--border2);color:var(--muted);
+  border-radius:4px;font-size:15px;font-weight:500;
+  text-decoration:none;transition:all .2s;
+}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.25);color:var(--white);}
+.hero-note{font-size:12px;color:var(--muted);margin-top:16px;letter-spacing:.3px;}
+
+/* ── STATS BAR ── */
+.stats-bar{
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  padding:28px 48px;
+  display:flex;align-items:center;justify-content:center;gap:64px;
+}
+.stat-item{text-align:center;}
+.stat-num{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:28px;color:var(--white);
+  letter-spacing:-1px;
+}
+.stat-num span{color:var(--accent);}
+.stat-label{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.5px;}
+.stat-divider{width:1px;height:40px;background:var(--border);}
+
+/* ── SECTION COMMON ── */
+section{padding:100px 48px;}
+.section-tag{
+  font-size:11px;font-weight:700;letter-spacing:3px;
+  color:var(--accent);text-transform:uppercase;margin-bottom:16px;
+}
+.section-title{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:clamp(32px,4vw,48px);
+  line-height:1.1;letter-spacing:-1.5px;margin-bottom:16px;
+}
+.section-sub{font-size:16px;color:var(--muted);line-height:1.7;max-width:520px;}
+
+/* ── HOW IT WORKS ── */
+.how-section{background:var(--surface);}
+.how-header{text-align:center;margin-bottom:64px;}
+.how-header .section-sub{margin:0 auto;}
+.steps{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:2px;max-width:1000px;margin:0 auto;
+}
+.step{
+  background:var(--surface2);
+  padding:40px 32px;position:relative;
+  transition:background .2s;
+}
+.step:hover{background:#1e1e1e;}
+.step-num{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:56px;
+  color:rgba(255,255,255,0.04);
+  position:absolute;top:20px;right:24px;
+  line-height:1;letter-spacing:-2px;
+}
+.step-icon{
+  width:44px;height:44px;border-radius:8px;
+  background:rgba(232,64,42,0.1);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;font-size:20px;
+}
+.step-title{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:700;font-size:18px;margin-bottom:10px;
+  letter-spacing:-.5px;
+}
+.step-desc{font-size:14px;color:var(--muted);line-height:1.7;}
+.step-arrow{
+  position:absolute;top:50%;right:-20px;
+  transform:translateY(-50%);
+  color:var(--muted);font-size:20px;z-index:1;
+}
+.step:last-child .step-arrow{display:none;}
+
+/* ── FEATURES ── */
+.features-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:2px;margin-top:64px;
+}
+.feature-card{
+  background:var(--surface);padding:40px;
+  transition:background .2s;
+}
+.feature-card:hover{background:var(--surface2);}
+.feature-card.wide{grid-column:span 2;}
+.feature-icon{
+  width:48px;height:48px;border-radius:10px;
+  border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:24px;
+}
+.feature-title{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:700;font-size:20px;letter-spacing:-.5px;
+  margin-bottom:10px;
+}
+.feature-desc{font-size:14px;color:var(--muted);line-height:1.75;max-width:400px;}
+.feature-tag{
+  display:inline-block;padding:4px 10px;
+  background:rgba(240,165,0,0.1);
+  border:1px solid rgba(240,165,0,0.2);
+  color:var(--gold);border-radius:4px;
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  margin-top:16px;
 }
 
-/* FEATURES */
-.features {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 0 24px 80px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+/* ── TEMPLATES ── */
+.templates-section{background:var(--surface);overflow:hidden;}
+.templates-scroll{
+  display:flex;gap:16px;margin-top:48px;
+  animation:scrollX 30s linear infinite;
+  width:max-content;
 }
-.feature-card {
-  background: #fff;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 24px 20px;
+.templates-scroll:hover{animation-play-state:paused;}
+@keyframes scrollX{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.template-card{
+  width:200px;height:280px;flex-shrink:0;
+  border-radius:8px;border:1px solid var(--border);
+  overflow:hidden;position:relative;
+  background:var(--surface2);
 }
-.feature-icon { font-size: 28px; margin-bottom: 12px; }
-.feature-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-.feature-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.template-card .t-bg{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.template-card .t-label{
+  position:absolute;bottom:12px;left:12px;right:12px;
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  color:rgba(255,255,255,0.5);text-transform:uppercase;
+}
 
-/* HOW */
-.how {
-  background: #fff;
-  border-top: 1.5px solid var(--border);
-  border-bottom: 1.5px solid var(--border);
-  padding: 64px 24px;
-  text-align: center;
-}
-.how h2 { font-size: 24px; font-weight: 900; margin-bottom: 40px; letter-spacing: -0.5px; }
-.how-steps {
-  display: flex;
-  justify-content: center;
-  gap: 0;
-  flex-wrap: wrap;
-  max-width: 640px;
-  margin: 0 auto;
-}
-.how-step {
-  flex: 1;
-  min-width: 140px;
-  padding: 0 16px;
-  position: relative;
-}
-.how-step:not(:last-child)::after {
-  content: '→';
-  position: absolute;
-  right: -8px;
-  top: 18px;
-  color: var(--muted);
-  font-size: 18px;
-}
-.step-num {
-  width: 40px;
-  height: 40px;
-  background: var(--ink);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 900;
-  margin: 0 auto 12px;
-}
-.step-label { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.step-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+/* template preview colors */
+.t1 .t-bg{background:linear-gradient(135deg,#1a1a2e,#16213e);}
+.t2 .t-bg{background:linear-gradient(135deg,#0d0d0d,#1a0a00);}
+.t3 .t-bg{background:linear-gradient(135deg,#0a1628,#0d2137);}
+.t4 .t-bg{background:linear-gradient(135deg,#1a1500,#2a2000);}
+.t5 .t-bg{background:linear-gradient(135deg,#120a1a,#1e0d2e);}
+.t6 .t-bg{background:linear-gradient(135deg,#0a1a0a,#0d2910);}
+.t7 .t-bg{background:linear-gradient(135deg,#1a0a0a,#2e1010);}
+.t8 .t-bg{background:linear-gradient(135deg,#0d0d0d,#1a1a1a);}
 
-/* PLANS */
-.plans {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 64px 24px;
-  text-align: center;
+.t-line{
+  width:60%;height:3px;border-radius:2px;margin:6px auto;
 }
-.plans h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.5px; }
-.plans-sub { font-size: 13px; color: var(--muted); margin-bottom: 36px; }
-.plans-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  text-align: left;
-}
-.plan-card {
-  background: #fff;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 24px 20px;
-}
-.plan-card.pro {
-  border-color: #c47a00;
-  background: #fffbf0;
-}
-.plan-name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
-.plan-card.pro .plan-name { color: #c47a00; }
-.plan-price { font-size: 22px; font-weight: 900; margin-bottom: 16px; letter-spacing: -0.5px; }
-.plan-price span { font-size: 12px; font-weight: 400; color: var(--muted); }
-.plan-features { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.plan-features li { font-size: 12px; color: var(--muted); }
-.plan-features li::before { content: '✓ '; color: #27ae60; font-weight: 700; }
+.t-line.wide{width:80%;}
+.t-line.short{width:40%;}
+.t-circle{width:40px;height:40px;border-radius:50%;margin:0 auto 12px;}
 
-/* CTA BOTTOM */
-.cta-bottom {
-  background: var(--ink);
-  color: #fff;
-  text-align: center;
-  padding: 64px 24px;
+/* ── PRICING ── */
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:2px;margin-top:64px;max-width:900px;margin-left:auto;margin-right:auto;
 }
-.cta-bottom h2 { font-size: 24px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
-.cta-bottom p { font-size: 14px; color: #aaa; margin-bottom: 28px; line-height: 1.6; }
-.cta-bottom-btn {
-  display: inline-block;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 10px;
-  padding: 14px 36px;
-  text-decoration: none;
-  transition: opacity 0.15s;
+.plan{
+  background:var(--surface);padding:36px 32px;
+  position:relative;transition:background .2s;
 }
-.cta-bottom-btn:hover { opacity: 0.9; }
+.plan:hover{background:var(--surface2);}
+.plan.featured{
+  background:var(--surface2);
+  border:1px solid rgba(232,64,42,0.3);
+}
+.plan-badge{
+  display:inline-block;padding:4px 12px;
+  background:var(--accent);color:#fff;
+  border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1px;
+  margin-bottom:20px;
+}
+.plan-name{
+  font-size:12px;font-weight:700;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;margin-bottom:12px;
+}
+.plan-price{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:40px;letter-spacing:-2px;
+  margin-bottom:4px;
+}
+.plan-price span{font-size:16px;font-weight:500;color:var(--muted);letter-spacing:0;}
+.plan-period{font-size:12px;color:var(--muted);margin-bottom:28px;}
+.plan-divider{height:1px;background:var(--border);margin-bottom:24px;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.plan-features li{
+  font-size:13px;color:var(--muted);
+  display:flex;align-items:center;gap:10px;
+}
+.plan-features li::before{
+  content:'';width:14px;height:14px;flex-shrink:0;
+  border-radius:50%;background:rgba(232,64,42,0.15);
+  border:1px solid rgba(232,64,42,0.4);
+  display:flex;align-items:center;justify-content:center;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpolyline points='2,6 5,9 10,3' fill='none' stroke='%23e8402a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:center;background-size:10px;
+}
+.plan-features li.highlight{color:var(--white);font-weight:500;}
+.btn-plan{
+  display:block;padding:14px;text-align:center;
+  border-radius:4px;font-size:14px;font-weight:700;
+  text-decoration:none;transition:all .2s;letter-spacing:.3px;
+}
+.btn-plan.outline{
+  border:1px solid var(--border2);color:var(--muted);
+}
+.btn-plan.outline:hover{border-color:rgba(255,255,255,0.25);color:var(--white);}
+.btn-plan.filled{
+  background:var(--accent);color:#fff;
+}
+.btn-plan.filled:hover{background:var(--accent-hover);}
 
-/* FOOTER */
-footer {
-  text-align: center;
-  padding: 24px 16px;
-  font-size: 11px;
-  color: #aaa;
-  border-top: 1px solid #e8e8e8;
+/* ── CTA ── */
+.cta-section{
+  background:var(--surface);
+  text-align:center;padding:120px 48px;
+  position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(232,64,42,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.cta-title{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:clamp(36px,5vw,64px);
+  letter-spacing:-2px;line-height:1.05;margin-bottom:20px;
+  position:relative;z-index:1;
+}
+.cta-sub{font-size:16px;color:var(--muted);margin-bottom:40px;position:relative;z-index:1;}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:16px;position:relative;z-index:1;}
+
+/* ── FOOTER ── */
+footer{
+  padding:40px 48px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.footer-logo{
+  font-family:'NanumSquareNeo',sans-serif;
+  font-weight:900;font-size:16px;letter-spacing:2px;
+}
+.footer-logo span{color:var(--accent);}
+.footer-links{display:flex;gap:24px;}
+.footer-links a{font-size:12px;color:var(--muted);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--white);}
+.footer-copy{font-size:12px;color:var(--muted);}
+
+/* ── SCROLL ANIMATION ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+@media(max-width:768px){
+  nav{padding:0 20px;}
+  .hero{padding:100px 20px 60px;}
+  .hero-title{font-size:42px;}
+  .stats-bar{padding:24px 20px;gap:24px;flex-wrap:wrap;}
+  .stat-divider{display:none;}
+  section{padding:60px 20px;}
+  .steps{grid-template-columns:1fr;}
+  .step-arrow{display:none;}
+  .features-grid{grid-template-columns:1fr;}
+  .feature-card.wide{grid-column:span 1;}
+  .pricing-grid{grid-template-columns:1fr;}
+  footer{flex-direction:column;gap:20px;text-align:center;padding:32px 20px;}
+  .footer-links{justify-content:center;}
 }
 </style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
-  <div class="nav-logo">CARD<span>.</span>AI</div>
-  <a href="/app" class="nav-cta">무료로 시작하기</a>
+  <a href="/" class="nav-logo">CARD<span>.</span>AI</a>
+  <div class="nav-links">
+    <a href="#features">기능</a>
+    <a href="#pricing">요금제</a>
+    <a href="/app" class="btn-nav">무료로 시작하기</a>
+  </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">✦ AI 카드뉴스 생성기</div>
-  <h1>주제 하나면<br><em>카드뉴스 완성</em></h1>
-  <p>주제나 뉴스 URL만 입력하면<br>AI가 카드뉴스 + 쓰레드 텍스트를 자동으로 만들어드려요.</p>
-  <a href="/app" class="hero-btn">무료로 시작하기</a>
-  <span class="hero-sub">신용카드 불필요 · 무료 플랜 제공</span>
+  <div class="hero-badge">AI 카드뉴스 생성기</div>
+  <h1 class="hero-title">
+    주제 하나면<br>
+    <span class="accent">카드뉴스</span>
+    <span class="line2">완성</span>
+  </h1>
+  <p class="hero-sub">
+    주제나 뉴스 URL을 입력하면<br>
+    <strong>AI가 카드뉴스 + 쓰레드 텍스트를 30초 만에</strong> 만들어드려요.
+  </p>
+  <div class="hero-cta">
+    <a href="/app" class="btn-primary">무료로 시작하기 →</a>
+    <a href="#features" class="btn-ghost">기능 보기</a>
+  </div>
+  <p class="hero-note">신용카드 불필요 · 무료 플랜 제공</p>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num">30<span>초</span></div>
+    <div class="stat-label">카드뉴스 생성 속도</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-num">11<span>종</span></div>
+    <div class="stat-label">디자인 템플릿</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-num">16<span>종</span></div>
+    <div class="stat-label">폰트 선택</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-num">PNG<span> 다운로드</span></div>
+    <div class="stat-label">고해상도 내보내기</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="how-header reveal">
+    <p class="section-tag">How it works</p>
+    <h2 class="section-title">3단계로 끝납니다</h2>
+    <p class="section-sub">복잡한 디자인 도구 없이, 텍스트 입력 하나로 완성</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">01</div>
+      <div class="step-icon">📝</div>
+      <div class="step-title">주제 입력</div>
+      <p class="step-desc">원하는 주제나 뉴스 URL을 입력하세요. 직접 텍스트를 써도, 링크를 붙여넣어도 OK.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">02</div>
+      <div class="step-icon">✨</div>
+      <div class="step-title">AI 생성</div>
+      <p class="step-desc">버튼 클릭 한 번으로 카드뉴스와 쓰레드 텍스트가 동시에 완성됩니다.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">03</div>
+      <div class="step-icon">💾</div>
+      <div class="step-title">편집 & 저장</div>
+      <p class="step-desc">테마·폰트·텍스트를 수정 후 PNG로 저장하거나 SNS에 바로 올리세요.</p>
+    </div>
+  </div>
 </section>
 
 <!-- FEATURES -->
-<section class="features">
-  <div class="feature-card">
-    <div class="feature-icon">⚡</div>
-    <div class="feature-title">30초 만에 완성</div>
-    <div class="feature-desc">주제 입력 후 버튼 하나로 카드뉴스와 쓰레드 텍스트가 동시에 생성됩니다.</div>
+<section id="features">
+  <div class="reveal">
+    <p class="section-tag">Features</p>
+    <h2 class="section-title">필요한 건 다 있어요</h2>
+    <p class="section-sub">SNS 콘텐츠 제작에 필요한 모든 기능을 하나의 도구에</p>
   </div>
-  <div class="feature-card">
-    <div class="feature-icon">🎨</div>
-    <div class="feature-title">10가지 테마</div>
-    <div class="feature-desc">미니멀, 네온, 레트로, 매거진 등 다양한 디자인 테마를 즉시 적용할 수 있어요.</div>
-  </div>
-  <div class="feature-card">
-    <div class="feature-icon">🖼️</div>
-    <div class="feature-title">AI 배경 이미지</div>
-    <div class="feature-desc">각 카드 주제에 맞는 배경 이미지를 AI가 자동으로 생성해 삽입합니다.</div>
-  </div>
-  <div class="feature-card">
-    <div class="feature-icon">📥</div>
-    <div class="feature-title">PNG 다운로드</div>
-    <div class="feature-desc">완성된 카드뉴스를 고해상도 PNG로 다운로드해 바로 SNS에 올리세요.</div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="how">
-  <h2>이렇게 쓰세요</h2>
-  <div class="how-steps">
-    <div class="how-step">
-      <div class="step-num">1</div>
-      <div class="step-label">주제 입력</div>
-      <div class="step-desc">원하는 주제나 뉴스 URL을 입력하세요</div>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">🎨</div>
+      <div class="feature-title">11가지 디자인 템플릿</div>
+      <p class="feature-desc">미니멀, 뉴스, 매거진, 레트로, 그라디언트 등 다양한 스타일. 주제에 맞는 템플릿을 즉시 적용할 수 있어요.</p>
     </div>
-    <div class="how-step">
-      <div class="step-num">2</div>
-      <div class="step-label">AI 생성</div>
-      <div class="step-desc">버튼 클릭 한 번으로 카드뉴스 완성</div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔤</div>
+      <div class="feature-title">16종 폰트 선택</div>
+      <p class="feature-desc">나눔스퀘어, 프리텐다드, 고딕계열 등 한국어에 최적화된 폰트를 자유롭게 선택하세요.</p>
     </div>
-    <div class="how-step">
-      <div class="step-num">3</div>
-      <div class="step-label">편집 & 저장</div>
-      <div class="step-desc">테마·텍스트 수정 후 PNG로 저장</div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🖼️</div>
+      <div class="feature-title">AI 배경 이미지 생성</div>
+      <p class="feature-desc">각 카드 주제에 맞는 배경 이미지를 AI가 자동으로 생성합니다. 매번 새로운 비주얼.</p>
+      <span class="feature-tag">AI POWERED</span>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🧵</div>
+      <div class="feature-title">쓰레드 텍스트 자동 생성</div>
+      <p class="feature-desc">카드뉴스와 동시에 X(트위터) / 인스타그램 쓰레드용 텍스트까지 자동으로 완성돼요.</p>
+    </div>
+    <div class="feature-card wide reveal">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">PNG 고해상도 다운로드</div>
+      <p class="feature-desc">완성된 카드뉴스를 고해상도 PNG로 저장. SNS에 바로 올릴 수 있는 퀄리티입니다. Pro 플랜은 전체 카드를 ZIP으로 한 번에 다운로드.</p>
     </div>
   </div>
 </section>
 
-<!-- PLANS -->
-<section class="plans">
-  <h2>요금제</h2>
-  <p class="plans-sub">지금 무료로 시작하고, 필요할 때 업그레이드하세요.</p>
-  <div class="plans-grid">
-    <div class="plan-card">
-      <div class="plan-name">무료</div>
-      <div class="plan-price">0원<span>/월</span></div>
+<!-- TEMPLATES SCROLL -->
+<section class="templates-section">
+  <div class="reveal" style="text-align:center;">
+    <p class="section-tag">Templates</p>
+    <h2 class="section-title">11가지 스타일</h2>
+    <p class="section-sub" style="margin:0 auto;">어떤 주제에도 어울리는 템플릿</p>
+  </div>
+  <div style="overflow:hidden;margin-top:48px;">
+    <div class="templates-scroll">
+      <!-- set 1 -->
+      <div class="template-card t1"><div class="t-bg"><div><div class="t-circle" style="background:rgba(100,120,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">미니멀 다크</div></div>
+      <div class="template-card t2"><div class="t-bg"><div><div class="t-circle" style="background:rgba(232,64,42,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.2);"></div><div class="t-line" style="background:rgba(255,255,255,0.1);"></div></div></div><div class="t-label">뉴스 스타일</div></div>
+      <div class="template-card t3"><div class="t-bg"><div><div class="t-circle" style="background:rgba(0,150,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.07);"></div></div></div><div class="t-label">매거진</div></div>
+      <div class="template-card t4"><div class="t-bg"><div><div class="t-circle" style="background:rgba(240,165,0,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line short" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">골드 레트로</div></div>
+      <div class="template-card t5"><div class="t-bg"><div><div class="t-circle" style="background:rgba(180,0,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.06);"></div></div></div><div class="t-label">네온 퍼플</div></div>
+      <div class="template-card t6"><div class="t-bg"><div><div class="t-circle" style="background:rgba(0,200,100,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.07);"></div></div></div><div class="t-label">에메랄드</div></div>
+      <div class="template-card t7"><div class="t-bg"><div><div class="t-circle" style="background:rgba(255,80,80,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line short" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">볼드 레드</div></div>
+      <div class="template-card t8"><div class="t-bg"><div><div class="t-circle" style="background:rgba(200,200,200,0.2);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.1);"></div><div class="t-line" style="background:rgba(255,255,255,0.05);"></div></div></div><div class="t-label">모노크롬</div></div>
+      <!-- duplicate for seamless loop -->
+      <div class="template-card t1"><div class="t-bg"><div><div class="t-circle" style="background:rgba(100,120,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">미니멀 다크</div></div>
+      <div class="template-card t2"><div class="t-bg"><div><div class="t-circle" style="background:rgba(232,64,42,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.2);"></div><div class="t-line" style="background:rgba(255,255,255,0.1);"></div></div></div><div class="t-label">뉴스 스타일</div></div>
+      <div class="template-card t3"><div class="t-bg"><div><div class="t-circle" style="background:rgba(0,150,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.07);"></div></div></div><div class="t-label">매거진</div></div>
+      <div class="template-card t4"><div class="t-bg"><div><div class="t-circle" style="background:rgba(240,165,0,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line short" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">골드 레트로</div></div>
+      <div class="template-card t5"><div class="t-bg"><div><div class="t-circle" style="background:rgba(180,0,255,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.06);"></div></div></div><div class="t-label">네온 퍼플</div></div>
+      <div class="template-card t6"><div class="t-bg"><div><div class="t-circle" style="background:rgba(0,200,100,0.3);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.12);"></div><div class="t-line" style="background:rgba(255,255,255,0.07);"></div></div></div><div class="t-label">에메랄드</div></div>
+      <div class="template-card t7"><div class="t-bg"><div><div class="t-circle" style="background:rgba(255,80,80,0.4);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.15);"></div><div class="t-line short" style="background:rgba(255,255,255,0.08);"></div></div></div><div class="t-label">볼드 레드</div></div>
+      <div class="template-card t8"><div class="t-bg"><div><div class="t-circle" style="background:rgba(200,200,200,0.2);"></div><div class="t-line wide" style="background:rgba(255,255,255,0.1);"></div><div class="t-line" style="background:rgba(255,255,255,0.05);"></div></div></div><div class="t-label">모노크롬</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="reveal" style="text-align:center;">
+    <p class="section-tag">Pricing</p>
+    <h2 class="section-title">합리적인 요금제</h2>
+    <p class="section-sub" style="margin:0 auto;">지금 무료로 시작하고, 필요할 때 업그레이드하세요</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="plan reveal">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">0<span>원</span></div>
+      <div class="plan-period">영구 무료</div>
+      <div class="plan-divider"></div>
       <ul class="plan-features">
         <li>월 3회 생성</li>
         <li>최대 5장</li>
         <li>10가지 테마</li>
         <li>PNG 다운로드</li>
       </ul>
+      <a href="/app" class="btn-plan outline">무료로 시작</a>
     </div>
-    <div class="plan-card">
-      <div class="plan-name">스탠다드</div>
-      <div class="plan-price">9,900원<span>/월</span></div>
+    <div class="plan featured reveal">
+      <div class="plan-badge">가장 인기</div>
+      <div class="plan-name">Standard</div>
+      <div class="plan-price">9,900<span>원</span></div>
+      <div class="plan-period">/ 월</div>
+      <div class="plan-divider"></div>
       <ul class="plan-features">
-        <li>월 30회 생성</li>
+        <li class="highlight">월 30회 생성</li>
         <li>최대 10장</li>
         <li>뉴스 URL 지원</li>
         <li>생성 기록 100개</li>
       </ul>
+      <a href="/app" class="btn-plan filled">시작하기</a>
     </div>
-    <div class="plan-card pro">
-      <div class="plan-name">✦ PRO</div>
-      <div class="plan-price">19,900원<span>/월</span></div>
+    <div class="plan reveal">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">19,900<span>원</span></div>
+      <div class="plan-period">/ 월</div>
+      <div class="plan-divider"></div>
       <ul class="plan-features">
-        <li>무제한 생성</li>
+        <li class="highlight">무제한 생성</li>
         <li>최대 20장</li>
         <li>브랜드 커스텀</li>
+        <li>ZIP 일괄 다운로드</li>
         <li>생성 기록 100개</li>
       </ul>
+      <a href="/app" class="btn-plan outline">Pro 시작하기</a>
     </div>
   </div>
 </section>
 
-<!-- CTA BOTTOM -->
-<section class="cta-bottom">
-  <h2>지금 바로 시작해보세요</h2>
-  <p>회원가입 후 무료로 카드뉴스를 만들어보세요.<br>신용카드 없이 시작할 수 있어요.</p>
-  <a href="/app" class="cta-bottom-btn">무료로 시작하기</a>
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="cta-title reveal">지금 바로<br>시작해보세요</h2>
+  <p class="cta-sub reveal">신용카드 없이 · 무료 3회 · 즉시 사용 가능</p>
+  <div class="cta-btns reveal">
+    <a href="/app" class="btn-primary" style="font-size:16px;padding:18px 48px;">무료로 시작하기 →</a>
+  </div>
 </section>
 
+<!-- FOOTER -->
 <footer>
-  © 2025 CARD.AI | 상호: 아이에스커넥트
+  <div class="footer-logo">CARD<span>.</span>AI</div>
+  <div class="footer-links">
+    <a href="#">이용약관</a>
+    <a href="#">개인정보처리방침</a>
+    <a href="#">문의하기</a>
+  </div>
+  <div class="footer-copy">© 2025 CARD.AI | 상호: 아이에스커넥트</div>
 </footer>
 
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
