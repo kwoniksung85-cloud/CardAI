@@ -1387,20 +1387,23 @@ async function saveGeneration() {
   const title = cards[0]?.title || document.getElementById('topic')?.value?.trim() || '카드뉴스';
   const safeUrls = imageUrls.map(u => (u && u.startsWith('https://')) ? u : null);
   const thumb = safeUrls[0] || null;
-  await fetch('/api/save-generation', {
+  // _imgs(base64) 제거 후 직렬화 — Vercel 요청 크기 초과 방지
+  const cleanCards = cards.map(({ _imgs, ...rest }) => rest);
+  const res = await fetch('/api/save-generation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentUser.token },
     body: JSON.stringify({
       title,
       thumbnailUrl: thumb,
       cardCount: cards.length,
-      cardsJson: JSON.stringify(cards),
+      cardsJson: JSON.stringify(cleanCards),
       imageUrlsJson: JSON.stringify(safeUrls),
       threadsText: document.getElementById('threadsText').textContent,
       theme: currentTheme,
       topic: document.getElementById('topic').value.trim(),
     }),
   });
+  if (!res.ok) console.error('saveGeneration failed:', res.status, await res.text());
 }
 
 function switchMode(mode) {
