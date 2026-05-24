@@ -1824,9 +1824,16 @@ function showErr(msg) {
 }
 
 function setLoading(on) {
+  const btn = document.getElementById('genBtn');
   document.getElementById('loading').className = 'loading' + (on ? ' show' : '');
-  document.getElementById('genBtn').disabled = on;
-  if (on) document.getElementById('results').className = 'results';
+  btn.disabled = on;
+  if (on) {
+    btn._origText = btn.textContent;
+    btn.textContent = '⏳ 생성 중...';
+    document.getElementById('results').className = 'results';
+  } else if (btn._origText) {
+    btn.textContent = btn._origText;
+  }
 }
 
   function handleImageUpload(event, cardIndex) {
