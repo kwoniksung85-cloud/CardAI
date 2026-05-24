@@ -637,6 +637,12 @@ body {
 @keyframes spin { to { transform:rotate(360deg); } }
 
 /* ─── AUTH ─── */
+.auth-forgot { text-align:center; margin-top:8px; }
+.auth-forgot button { background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; text-decoration:underline; }
+.auth-forgot button:hover { color:var(--ink); }
+.auth-back { font-size:12px; color:var(--muted); cursor:pointer; margin-bottom:16px; display:inline-block; }
+.auth-back:hover { color:var(--ink); }
+.auth-desc { font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6; }
 .auth-screen {
   display:flex; align-items:center; justify-content:center;
   min-height:100vh; padding:24px; background:var(--bg);
@@ -901,7 +907,26 @@ body {
       <div class="auth-field"><label>이메일</label><input type="email" id="loginEmail" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="auth-field"><label>비밀번호</label><input type="password" id="loginPw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="auth-btn" onclick="doLogin()">로그인</button>
+      <div class="auth-forgot"><button onclick="showResetForm()">비밀번호를 잊으셨나요?</button></div>
       <div class="auth-err" id="loginErr"></div>
+    </div>
+
+    <!-- 비밀번호 재설정 요청 폼 -->
+    <div id="resetForm" style="display:none">
+      <span class="auth-back" onclick="showLoginForm()">← 로그인으로 돌아가기</span>
+      <p class="auth-desc">가입한 이메일을 입력하면 비밀번호 재설정 링크를 보내드려요.</p>
+      <div class="auth-field"><label>이메일</label><input type="email" id="resetEmail" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doResetPassword()"></div>
+      <button class="auth-btn" onclick="doResetPassword()">재설정 링크 보내기</button>
+      <div class="auth-err" id="resetErr"></div>
+    </div>
+
+    <!-- 새 비밀번호 설정 폼 (메일 링크 클릭 후) -->
+    <div id="newPwForm" style="display:none">
+      <p class="auth-desc">새로운 비밀번호를 입력해주세요.</p>
+      <div class="auth-field"><label>새 비밀번호</label><input type="password" id="newPw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doUpdatePassword()"></div>
+      <div class="auth-field"><label>비밀번호 확인</label><input type="password" id="newPwConfirm" placeholder="비밀번호 재입력" onkeydown="if(event.key==='Enter')doUpdatePassword()"></div>
+      <button class="auth-btn" onclick="doUpdatePassword()">비밀번호 변경</button>
+      <div class="auth-err" id="newPwErr"></div>
     </div>
     <div id="signupForm" style="display:none;">
       <div class="auth-field"><label>이메일</label><input type="email" id="signupEmail" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doSignup()"></div>
@@ -1965,6 +1990,18 @@ function setLoading(on) {
   // 페이지 로드 시 기존 세션 복원
   window.addEventListener('DOMContentLoaded', async () => {
     updateCardCountOptions('free');
+
+    // 비밀번호 재설정 메일 링크로 돌아온 경우 감지
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (hashParams.get('type') === 'recovery') {
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('newPwForm').style.display = '';
+      document.querySelector('.auth-tabs').style.display = 'none';
+      document.getElementById('initLoader').style.display = 'none';
+      return;
+    }
+
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       await loadUserProfile(session.access_token);
@@ -1979,6 +2016,61 @@ function setLoading(on) {
     btn.classList.add('active');
     document.getElementById('loginForm').style.display  = tab === 'login'  ? '' : 'none';
     document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
+    document.getElementById('resetForm').style.display  = 'none';
+    document.getElementById('newPwForm').style.display  = 'none';
+    document.querySelector('.auth-tabs').style.display  = '';
+  }
+
+  function showResetForm() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('resetForm').style.display = '';
+    document.getElementById('resetErr').textContent = '';
+    document.getElementById('resetEmail').value = document.getElementById('loginEmail').value;
+    document.querySelector('.auth-tabs').style.display = 'none';
+  }
+
+  function showLoginForm() {
+    document.getElementById('resetForm').style.display = 'none';
+    document.getElementById('loginForm').style.display = '';
+    document.querySelector('.auth-tabs').style.display = '';
+  }
+
+  async function doResetPassword() {
+    const email = document.getElementById('resetEmail').value.trim();
+    const err   = document.getElementById('resetErr');
+    err.textContent = '';
+    err.style.color = '#e84040';
+    if (!email.includes('@')) { err.textContent = '올바른 이메일을 입력해주세요.'; return; }
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if (error) { err.textContent = error.message; return; }
+      err.style.color = '#27ae60';
+      err.textContent = '✓ 재설정 링크를 보내드렸어요. 이메일을 확인해주세요.';
+    } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
+  }
+
+  async function doUpdatePassword() {
+    const pw      = document.getElementById('newPw').value;
+    const pwConf  = document.getElementById('newPwConfirm').value;
+    const err     = document.getElementById('newPwErr');
+    err.textContent = '';
+    err.style.color = '#e84040';
+    if (pw.length < 6) { err.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
+    if (pw !== pwConf) { err.textContent = '비밀번호가 일치하지 않아요.'; return; }
+    try {
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (error) { err.textContent = error.message; return; }
+      err.style.color = '#27ae60';
+      err.textContent = '✓ 비밀번호가 변경됐어요. 로그인해주세요.';
+      setTimeout(() => {
+        document.getElementById('newPwForm').style.display = 'none';
+        document.getElementById('loginForm').style.display = '';
+        document.querySelector('.auth-tabs').style.display = '';
+        window.history.replaceState(null, '', window.location.pathname);
+      }, 1500);
+    } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
   }
 
   function selectSignupPlan(p) {
