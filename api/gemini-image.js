@@ -17,32 +17,36 @@ module.exports = async (req, res) => {
   try {
     const { prompt, keyword } = req.body;
 
-    // Imagen 3
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+    // Gemini 2.0 Flash Preview Image Generation
+    const model = 'gemini-2.0-flash-preview-image-generation';
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: { sampleCount: 1, aspectRatio: '1:1' }
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
         }),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error(`[gemini-image] imagen-3 status=${response.status}`, errText);
+        console.error(`[gemini-image] ${model} status=${response.status}`, errText);
       } else {
         const data = await response.json();
-        const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-        const mime = data?.predictions?.[0]?.mimeType || 'image/png';
-        if (b64) {
-          return res.json({ imageUrl: `data:${mime};base64,${b64}` });
+        const parts = data?.candidates?.[0]?.content?.parts;
+        if (parts) {
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              return res.json({ imageUrl: 'data:image/png;base64,' + part.inlineData.data });
+            }
+          }
         }
-        console.error('[gemini-image] imagen-3 - no image in response', JSON.stringify(data));
+        console.error(`[gemini-image] ${model} - no image in response`, JSON.stringify(data?.candidates?.[0]?.content));
       }
     } catch (e) {
-      console.error('[gemini-image] imagen-3 exception:', e.message);
+      console.error(`[gemini-image] ${model} exception:`, e.message);
     }
 
     // Imagen 3 실패 시 Unsplash 폴백
