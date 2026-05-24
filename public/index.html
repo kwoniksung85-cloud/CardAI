@@ -904,8 +904,8 @@ body {
       <div class="auth-err" id="loginErr"></div>
     </div>
     <div id="signupForm" style="display:none;">
-      <div class="auth-field"><label>이메일</label><input type="email" id="signupEmail" placeholder="example@email.com"></div>
-      <div class="auth-field"><label>비밀번호</label><input type="password" id="signupPw" placeholder="6자 이상"></div>
+      <div class="auth-field"><label>이메일</label><input type="email" id="signupEmail" placeholder="example@email.com" onkeydown="if(event.key==='Enter')doSignup()"></div>
+      <div class="auth-field"><label>비밀번호</label><input type="password" id="signupPw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')doSignup()"></div>
       <div class="auth-field">
         <label>플랜 선택</label>
         <div class="plan-opts">
