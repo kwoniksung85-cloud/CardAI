@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
   try {
     const { prompt, keyword } = req.body;
 
-    // Gemini 2.0 Flash Preview Image Generation
-    const model = 'gemini-2.0-flash-preview-image-generation';
+    // Gemini 2.5 Flash Image Generation
+    const model = 'gemini-2.5-flash-image';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     try {
       const response = await fetch(endpoint, {
