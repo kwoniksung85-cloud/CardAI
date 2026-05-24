@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CARD.AI — AI 카드뉴스 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f3ef;
+  --ink: #1a1a1a;
+  --muted: #888;
+  --border: #ddd;
+  --accent: #e84040;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* NAV */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 60px;
+  border-bottom: 1.5px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-logo {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  font-family: 'Space Mono', monospace;
+}
+.nav-logo span { color: var(--accent); }
+.nav-cta {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.nav-cta:hover { opacity: 0.8; }
+
+/* HERO */
+.hero {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 80px 24px 64px;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-block;
+  background: #fff5f5;
+  border: 1.5px solid #ffd0d0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 100px;
+  padding: 5px 14px;
+  margin-bottom: 24px;
+  letter-spacing: 0.3px;
+}
+.hero h1 {
+  font-size: clamp(32px, 6vw, 52px);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -1.5px;
+  margin-bottom: 20px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+.hero p {
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+.hero-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 14px 36px;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.hero-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.hero-sub {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* FEATURES */
+.features {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.feature-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 20px;
+}
+.feature-icon { font-size: 28px; margin-bottom: 12px; }
+.feature-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.feature-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* HOW */
+.how {
+  background: #fff;
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 64px 24px;
+  text-align: center;
+}
+.how h2 { font-size: 24px; font-weight: 900; margin-bottom: 40px; letter-spacing: -0.5px; }
+.how-steps {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.how-step {
+  flex: 1;
+  min-width: 140px;
+  padding: 0 16px;
+  position: relative;
+}
+.how-step:not(:last-child)::after {
+  content: '→';
+  position: absolute;
+  right: -8px;
+  top: 18px;
+  color: var(--muted);
+  font-size: 18px;
+}
+.step-num {
+  width: 40px;
+  height: 40px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  margin: 0 auto 12px;
+}
+.step-label { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.step-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* PLANS */
+.plans {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  text-align: center;
+}
+.plans h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.5px; }
+.plans-sub { font-size: 13px; color: var(--muted); margin-bottom: 36px; }
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  text-align: left;
+}
+.plan-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 20px;
+}
+.plan-card.pro {
+  border-color: #c47a00;
+  background: #fffbf0;
+}
+.plan-name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
+.plan-card.pro .plan-name { color: #c47a00; }
+.plan-price { font-size: 22px; font-weight: 900; margin-bottom: 16px; letter-spacing: -0.5px; }
+.plan-price span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.plan-features { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.plan-features li { font-size: 12px; color: var(--muted); }
+.plan-features li::before { content: '✓ '; color: #27ae60; font-weight: 700; }
+
+/* CTA BOTTOM */
+.cta-bottom {
+  background: var(--ink);
+  color: #fff;
+  text-align: center;
+  padding: 64px 24px;
+}
+.cta-bottom h2 { font-size: 24px; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
+.cta-bottom p { font-size: 14px; color: #aaa; margin-bottom: 28px; line-height: 1.6; }
+.cta-bottom-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 14px 36px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.cta-bottom-btn:hover { opacity: 0.9; }
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 24px 16px;
+  font-size: 11px;
+  color: #aaa;
+  border-top: 1px solid #e8e8e8;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">CARD<span>.</span>AI</div>
+  <a href="/app" class="nav-cta">무료로 시작하기</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✦ AI 카드뉴스 생성기</div>
+  <h1>주제 하나면<br><em>카드뉴스 완성</em></h1>
+  <p>주제나 뉴스 URL만 입력하면<br>AI가 카드뉴스 + 쓰레드 텍스트를 자동으로 만들어드려요.</p>
+  <a href="/app" class="hero-btn">무료로 시작하기</a>
+  <span class="hero-sub">신용카드 불필요 · 무료 플랜 제공</span>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="feature-card">
+    <div class="feature-icon">⚡</div>
+    <div class="feature-title">30초 만에 완성</div>
+    <div class="feature-desc">주제 입력 후 버튼 하나로 카드뉴스와 쓰레드 텍스트가 동시에 생성됩니다.</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🎨</div>
+    <div class="feature-title">10가지 테마</div>
+    <div class="feature-desc">미니멀, 네온, 레트로, 매거진 등 다양한 디자인 테마를 즉시 적용할 수 있어요.</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🖼️</div>
+    <div class="feature-title">AI 배경 이미지</div>
+    <div class="feature-desc">각 카드 주제에 맞는 배경 이미지를 AI가 자동으로 생성해 삽입합니다.</div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📥</div>
+    <div class="feature-title">PNG 다운로드</div>
+    <div class="feature-desc">완성된 카드뉴스를 고해상도 PNG로 다운로드해 바로 SNS에 올리세요.</div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <h2>이렇게 쓰세요</h2>
+  <div class="how-steps">
+    <div class="how-step">
+      <div class="step-num">1</div>
+      <div class="step-label">주제 입력</div>
+      <div class="step-desc">원하는 주제나 뉴스 URL을 입력하세요</div>
+    </div>
+    <div class="how-step">
+      <div class="step-num">2</div>
+      <div class="step-label">AI 생성</div>
+      <div class="step-desc">버튼 클릭 한 번으로 카드뉴스 완성</div>
+    </div>
+    <div class="how-step">
+      <div class="step-num">3</div>
+      <div class="step-label">편집 & 저장</div>
+      <div class="step-desc">테마·텍스트 수정 후 PNG로 저장</div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="plans">
+  <h2>요금제</h2>
+  <p class="plans-sub">지금 무료로 시작하고, 필요할 때 업그레이드하세요.</p>
+  <div class="plans-grid">
+    <div class="plan-card">
+      <div class="plan-name">무료</div>
+      <div class="plan-price">0원<span>/월</span></div>
+      <ul class="plan-features">
+        <li>월 3회 생성</li>
+        <li>최대 5장</li>
+        <li>10가지 테마</li>
+        <li>PNG 다운로드</li>
+      </ul>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">스탠다드</div>
+      <div class="plan-price">9,900원<span>/월</span></div>
+      <ul class="plan-features">
+        <li>월 30회 생성</li>
+        <li>최대 10장</li>
+        <li>뉴스 URL 지원</li>
+        <li>생성 기록 100개</li>
+      </ul>
+    </div>
+    <div class="plan-card pro">
+      <div class="plan-name">✦ PRO</div>
+      <div class="plan-price">19,900원<span>/월</span></div>
+      <ul class="plan-features">
+        <li>무제한 생성</li>
+        <li>최대 20장</li>
+        <li>브랜드 커스텀</li>
+        <li>생성 기록 100개</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BOTTOM -->
+<section class="cta-bottom">
+  <h2>지금 바로 시작해보세요</h2>
+  <p>회원가입 후 무료로 카드뉴스를 만들어보세요.<br>신용카드 없이 시작할 수 있어요.</p>
+  <a href="/app" class="cta-bottom-btn">무료로 시작하기</a>
+</section>
+
+<footer>
+  © 2025 CARD.AI | 상호: 아이에스커넥트
+</footer>
+
+</body>
+</html>
