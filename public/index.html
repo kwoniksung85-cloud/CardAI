@@ -624,6 +624,18 @@ body {
   .field-row { grid-template-columns: 1fr; }
 }
 
+/* ─── AUTH INIT LOADER ─── */
+#initLoader {
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:var(--bg); z-index:9999;
+}
+#initLoader::after {
+  content:''; width:32px; height:32px; border-radius:50%;
+  border:3px solid var(--border); border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
 /* ─── AUTH ─── */
 .auth-screen {
   display:flex; align-items:center; justify-content:center;
@@ -873,8 +885,11 @@ body {
 </head>
 <body>
 
+<!-- ─── INIT LOADER ─── -->
+<div id="initLoader"></div>
+
 <!-- ─── AUTH SCREEN ─── -->
-<div class="auth-screen" id="authScreen">
+<div class="auth-screen" id="authScreen" style="display:none">
   <div class="auth-box">
     <div class="auth-logo">CARD<span>.</span>AI</div>
     <div class="auth-tagline">AI 카드뉴스 + 쓰레드 자동 생성</div>
@@ -1951,7 +1966,12 @@ function setLoading(on) {
   window.addEventListener('DOMContentLoaded', async () => {
     updateCardCountOptions('free');
     const { data: { session } } = await sb.auth.getSession();
-    if (session) await loadUserProfile(session.access_token);
+    if (session) {
+      await loadUserProfile(session.access_token);
+    } else {
+      document.getElementById('authScreen').style.display = 'flex';
+    }
+    document.getElementById('initLoader').style.display = 'none';
   });
 
   function showAuthTab(tab, btn) {
