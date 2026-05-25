@@ -724,6 +724,7 @@ body {
 .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 .auth-google-btn { width:100%; padding:11px; border:1px solid var(--border); border-radius:8px; background:#fff; font-size:14px; font-weight:500; color:#3c4043; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:background .2s,border-color .2s; font-family:inherit; }
 .auth-google-btn:hover { background:#f8f9fa; border-color:#dadce0; }
+.kakao-warning { display:none; background:#FFF7E6; border:1px solid #F59E0B; border-radius:8px; padding:12px 14px; font-size:12px; color:#92400E; line-height:1.7; margin-bottom:16px; }
 
 /* ─── NAV ─── */
 .app-nav {
@@ -983,6 +984,10 @@ body {
   <div class="auth-box">
     <div class="auth-logo">CARD<span>.</span>AI</div>
     <div class="auth-tagline">AI 카드뉴스 + 쓰레드 자동 생성</div>
+    <div class="kakao-warning" id="kakaoWarning">
+      ⚠️ 구글 로그인은 카카오톡 내에서 지원되지 않아요.<br>
+      우측 상단 메뉴 → <b>'다른 브라우저로 열기'</b>를 눌러주세요.
+    </div>
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="showAuthTab('login',this)">로그인</button>
       <button class="auth-tab" onclick="showAuthTab('signup',this)">회원가입</button>
@@ -2200,6 +2205,9 @@ function setLoading(on) {
   // Initialize card count options on load
   document.addEventListener('DOMContentLoaded', function() {
     updateCardCountOptions('free');
+    if (/KAKAOTALK/i.test(navigator.userAgent)) {
+      document.getElementById('kakaoWarning').style.display = 'block';
+    }
     const sel = document.getElementById('fontSelect');
     if (sel) sel.addEventListener('change', function() { changeFont(this.value); });
   });
