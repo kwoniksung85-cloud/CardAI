@@ -2694,14 +2694,10 @@ function setLoading(on) {
 
   function openProUpgradeConfirm() {
     closePlanModal();
-    const subEnd = currentUser?.subscription_end;
-    if (!subEnd || !currentUser?.billing_key) {
-      openUpgradeModal();
-      return;
-    }
-    const endDate  = new Date(subEnd);
+    const subEnd   = currentUser?.subscription_end;
+    const endDate  = subEnd ? new Date(subEnd) : new Date();
     const now      = new Date();
-    const daysLeft = Math.max(0, Math.ceil((endDate - now) / 86400000));
+    const daysLeft = subEnd ? Math.max(0, Math.ceil((endDate - now) / 86400000)) : 0;
     const deduct   = Math.round(9900 / 30 * daysLeft);
     const charge   = Math.max(0, 19900 - deduct);
 
