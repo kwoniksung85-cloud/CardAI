@@ -2694,6 +2694,14 @@ function setLoading(on) {
 
   function openProUpgradeConfirm() {
     closePlanModal();
+
+    // 빌링키 없음 → 토스 카드 등록 flow (등록 후 toss-billing-auth에서 일할 계산 자동 적용)
+    if (!currentUser?.has_billing_key) {
+      upgradeTo('pro');
+      return;
+    }
+
+    // 빌링키 있음 → 일할 계산 확인 모달
     const subEnd   = currentUser?.subscription_end;
     const endDate  = subEnd ? new Date(subEnd) : new Date();
     const now      = new Date();

@@ -44,9 +44,9 @@ module.exports = async (req, res) => {
     }
     const { billingKey } = authData;
 
-    // 2. 유저 이메일 조회 (결제 영수증용)
+    // 2. 유저 프로필 조회 (이메일 + 현재 플랜 + 구독 기간)
     const profileRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=email`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=email,plan,subscription_end`,
       {
         headers: {
           'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
@@ -55,9 +55,22 @@ module.exports = async (req, res) => {
       }
     );
     const profiles = await profileRes.json();
-    const email = profiles[0]?.email || '';
+    const profile  = profiles[0] || {};
+    const email    = profile.email || '';
 
-    // 3. 결제 실행 (최초 1회)
+    // 일할 계산: standard → pro 업그레이드 시 잔여 기간 차감
+    let chargeAmount        = PLAN_PRICE[plan];
+    let keepSubscriptionEnd = false;
+    if (plan === 'pro' && profile.plan === 'standard' && profile.subscription_end) {
+      const endDate  = new Date(profile.subscription_end);
+      const now      = new Date();
+      const daysLeft = Math.max(0, Math.ceil((endDate - now) / 86400000));
+      const deduct   = Math.round(9900 / 30 * daysLeft);
+      chargeAmount        = Math.max(0, 19900 - deduct);
+      keepSubscriptionEnd = true;
+    }
+
+    // 3. 결제 실행
     const orderId = `${plan}-${userId.replace(/-/g, '').slice(0, 12)}-${Date.now()}`;
     const chargeRes = await fetch(
       `https://api.tosspayments.com/v1/billing/${billingKey}`,
@@ -69,11 +82,11 @@ module.exports = async (req, res) => {
         },
         body: JSON.stringify({
           customerKey,
-          amount: PLAN_PRICE[plan],
+          amount:        chargeAmount,
           orderId,
-          orderName: PLAN_NAME[plan],
+          orderName:     keepSubscriptionEnd ? 'CARD.AI PRO 업그레이드 (일할 정산)' : PLAN_NAME[plan],
           customerEmail: email,
-          customerName: email.split('@')[0] || 'user',
+          customerName:  email.split('@')[0] || 'user',
         }),
       }
     );
@@ -84,8 +97,12 @@ module.exports = async (req, res) => {
     }
 
     // 4. Supabase 플랜 + 빌링키 저장
-    const subscriptionEnd = new Date();
-    subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
+    const updateData = { plan, billing_key: billingKey, customer_key: customerKey };
+    if (!keepSubscriptionEnd) {
+      const subscriptionEnd = new Date();
+      subscriptionEnd.setDate(subscriptionEnd.getDate() + 30);
+      updateData.subscription_end = subscriptionEnd.toISOString().split('T')[0];
+    }
 
     await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
       method: 'PATCH',
@@ -95,12 +112,7 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({
-        plan,
-        billing_key: billingKey,
-        customer_key: customerKey,
-        subscription_end: subscriptionEnd.toISOString().split('T')[0],
-      }),
+      body: JSON.stringify(updateData),
     });
 
     return res.redirect(`/?payment=success&plan=${plan}`);

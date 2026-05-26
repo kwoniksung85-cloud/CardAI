@@ -71,6 +71,7 @@ module.exports = async (req, res) => {
       usage: profile.usage_count,
       maxUsage: profile.plan in PLAN_MAX ? PLAN_MAX[profile.plan] : 3,
       subscription_end: profile.subscription_end || null,
+      has_billing_key: !!profile.billing_key,
     });
 
   } catch (err) {
