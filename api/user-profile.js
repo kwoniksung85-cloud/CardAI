@@ -62,6 +62,28 @@ module.exports = async (req, res) => {
       profile.usage_count = 0;
     }
 
+    // next_plan 자동 적용: subscription_end 이후 로그인 시
+    if (profile.next_plan && profile.subscription_end) {
+      const subEndDate = new Date(profile.subscription_end);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      subEndDate.setHours(0, 0, 0, 0);
+      if (today > subEndDate) {
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'apikey':        SUPABASE_SERVICE_KEY,
+            'Content-Type':  'application/json',
+          },
+          body: JSON.stringify({ plan: profile.next_plan, next_plan: null, subscription_end: null }),
+        });
+        profile.plan          = profile.next_plan;
+        profile.next_plan     = null;
+        profile.subscription_end = null;
+      }
+    }
+
     const PLAN_MAX = { free: 3, standard: 30, pro: null };
 
     res.json({
@@ -72,6 +94,7 @@ module.exports = async (req, res) => {
       maxUsage: profile.plan in PLAN_MAX ? PLAN_MAX[profile.plan] : 3,
       subscription_end: profile.subscription_end || null,
       has_billing_key: !!profile.billing_key,
+      next_plan: profile.next_plan || null,
     });
 
   } catch (err) {
