@@ -2645,11 +2645,11 @@ function setLoading(on) {
     } else if (plan === 'standard') {
       actions.innerHTML =
         `<button onclick="closePlanModal();openUpgradeModal();" style="${btnStyle}background:#1a4ac8;color:#fff;">PRO로 업그레이드</button>` +
-        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">무료로 다운그레이드</button>`;
+        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">구독 해지</button>`;
     } else if (plan === 'pro') {
       actions.innerHTML =
         `<button onclick="confirmDowngrade('standard')" style="${btnStyle}background:#1a4ac8;color:#fff;">스탠다드로 다운그레이드</button>` +
-        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">무료로 다운그레이드</button>`;
+        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">구독 해지</button>`;
     }
 
     document.getElementById('planModal').style.display = 'flex';
