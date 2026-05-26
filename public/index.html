@@ -1422,6 +1422,39 @@ body {
   </div>
 </div>
 
+<!-- PRO 업그레이드 확인 모달 (스탠다드→PRO 일할 정산) -->
+<div class="modal-overlay" id="proUpgradeModal" style="display:none;">
+  <div class="modal-box">
+    <div style="font-size:18px;font-weight:900;margin-bottom:4px;">PRO 업그레이드 확인</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6;">스탠다드 잔여 기간을 차감한 금액만 결제됩니다.</p>
+    <div style="background:#f8f9fc;border-radius:10px;padding:16px 18px;margin-bottom:18px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="color:var(--muted);">현재 스탠다드 잔여</span>
+        <span id="proUpgradeRemain" style="font-weight:600;"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="color:var(--muted);">차감 금액</span>
+        <span id="proUpgradeDeduct" style="color:#1a4ac8;font-weight:600;"></span>
+      </div>
+      <div style="border-top:1px solid #e8e8e8;margin-bottom:10px;"></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-weight:700;font-size:15px;">
+        <span>오늘 결제 금액</span>
+        <span id="proUpgradeCharge"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:var(--muted);">다음 결제일</span>
+        <span id="proUpgradeNextDate" style="color:#555;"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--muted);">이후 매월</span>
+        <span style="color:#555;">19,900원</span>
+      </div>
+    </div>
+    <button id="proUpgradePayBtn" onclick="confirmProUpgrade()" style="width:100%;padding:13px;background:#1a4ac8;color:#fff;border:none;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;">결제하기</button>
+    <button onclick="closeProUpgradeModal()" style="width:100%;padding:11px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;color:var(--muted);">취소</button>
+  </div>
+</div>
+
 <!-- 플랜 관리 모달 -->
 <div class="modal-overlay" id="planModal">
   <div class="modal-box">
@@ -2644,7 +2677,7 @@ function setLoading(on) {
       actions.innerHTML = `<button onclick="closePlanModal();openUpgradeModal();" style="${btnStyle}background:#1a4ac8;color:#fff;">업그레이드하기</button>`;
     } else if (plan === 'standard') {
       actions.innerHTML =
-        `<button onclick="closePlanModal();openUpgradeModal();" style="${btnStyle}background:#1a4ac8;color:#fff;">PRO로 업그레이드</button>` +
+        `<button onclick="openProUpgradeConfirm()" style="${btnStyle}background:#1a4ac8;color:#fff;">PRO로 업그레이드</button>` +
         `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">구독 해지</button>`;
     } else if (plan === 'pro') {
       actions.innerHTML =
@@ -2657,6 +2690,56 @@ function setLoading(on) {
 
   function closePlanModal() {
     document.getElementById('planModal').style.display = 'none';
+  }
+
+  function openProUpgradeConfirm() {
+    closePlanModal();
+    const subEnd = currentUser?.subscription_end;
+    if (!subEnd || !currentUser?.billing_key) {
+      openUpgradeModal();
+      return;
+    }
+    const endDate  = new Date(subEnd);
+    const now      = new Date();
+    const daysLeft = Math.max(0, Math.ceil((endDate - now) / 86400000));
+    const deduct   = Math.round(9900 / 30 * daysLeft);
+    const charge   = Math.max(0, 19900 - deduct);
+
+    document.getElementById('proUpgradeRemain').textContent = `${daysLeft}일`;
+    document.getElementById('proUpgradeDeduct').textContent = `-${deduct.toLocaleString()}원`;
+    document.getElementById('proUpgradeCharge').textContent = `${charge.toLocaleString()}원`;
+    document.getElementById('proUpgradeNextDate').textContent =
+      endDate.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
+
+    const btn = document.getElementById('proUpgradePayBtn');
+    btn.disabled = false;
+    btn.textContent = '결제하기';
+    document.getElementById('proUpgradeModal').style.display = 'flex';
+  }
+
+  function closeProUpgradeModal() {
+    document.getElementById('proUpgradeModal').style.display = 'none';
+  }
+
+  async function confirmProUpgrade() {
+    const btn = document.getElementById('proUpgradePayBtn');
+    btn.disabled = true;
+    btn.textContent = '처리 중...';
+    try {
+      const res  = await fetch('/api/upgrade-to-pro', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '결제 실패');
+      closeProUpgradeModal();
+      await loadUserProfile(currentUser.token);
+      showPaymentToast('success', '✅ PRO 플랜으로 업그레이드됐어요!');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '결제하기';
+      showPaymentToast('fail', `❌ ${err.message}`);
+    }
   }
 
   async function confirmCancelSubscription() {
