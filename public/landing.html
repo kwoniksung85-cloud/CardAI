@@ -590,7 +590,7 @@ footer{
         <li>뉴스 URL 지원</li>
         <li>생성 기록 100개</li>
       </ul>
-      <a href="/app" class="btn-plan filled">시작하기</a>
+      <a href="/app" class="btn-plan filled" onclick="sessionStorage.setItem('selectedPlan','standard')">시작하기</a>
     </div>
     <div class="plan reveal">
       <div class="plan-name">Pro</div>
@@ -604,7 +604,7 @@ footer{
         <li>ZIP 일괄 다운로드</li>
         <li>생성 기록 100개</li>
       </ul>
-      <a href="/app" class="btn-plan outline">Pro 시작하기</a>
+      <a href="/app" class="btn-plan outline" onclick="sessionStorage.setItem('selectedPlan','pro')">Pro 시작하기</a>
     </div>
   </div>
   <p style="margin-top:20px;font-size:11px;color:#666;text-align:center;line-height:1.8;">

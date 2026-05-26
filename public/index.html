@@ -1399,6 +1399,23 @@ body {
   </div>
 </div>
 
+<!-- PLAN SUGGEST MODAL (랜딩 플랜 선택 후 진입 시) -->
+<div class="modal-overlay" id="planSuggestModal">
+  <div class="modal-box">
+    <div style="font-size:17px;font-weight:900;margin-bottom:6px;" id="planSuggestTitle">스탠다드 플랜을 선택하셨네요!</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6;">지금 결제하고 바로 시작할까요?</p>
+    <div style="border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;" id="planSuggestRow">
+      <div>
+        <div style="font-weight:700;" id="planSuggestName"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;" id="planSuggestDesc"></div>
+      </div>
+      <div style="font-weight:700;" id="planSuggestPrice"></div>
+    </div>
+    <button onclick="confirmPlanPayment()" style="width:100%;padding:13px;background:#1a4ac8;color:#fff;border:none;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;" id="planSuggestPayBtn">결제하기</button>
+    <button onclick="dismissPlanSuggest()" style="width:100%;padding:11px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;color:var(--muted);">나중에 하기</button>
+  </div>
+</div>
+
 <!-- ─── MY PAGE SCREEN ─── -->
 <div class="mypage-screen" id="myPageScreen">
   <nav class="mypage-nav">
@@ -2456,6 +2473,13 @@ function setLoading(on) {
     updateBrandKitVisibility();
     updateCustomTemplateLock();
     updateBrandKitVisibility(); updateCustomTemplateLock();
+
+    // 랜딩에서 플랜 선택 후 진입한 경우 결제 제안 모달 표시
+    const preSelectedPlan = sessionStorage.getItem('selectedPlan');
+    if (preSelectedPlan && currentUser.plan === 'free') {
+      sessionStorage.removeItem('selectedPlan');
+      setTimeout(() => showPlanSuggestModal(preSelectedPlan), 400);
+    }
   }
 
   async function doLogout() {
@@ -2505,6 +2529,35 @@ function setLoading(on) {
     document.getElementById('upgradePayBtn').style.display = 'none';
   }
   function closeUpgradeModal() { document.getElementById('upgradeModal').style.display = 'none'; }
+
+  const _PLAN_SUGGEST_INFO = {
+    standard: { name: '스탠다드', desc: '월 30회 · 최대 10장 · 뉴스 URL',       price: '9,900원/월',  color: '#1a4ac8' },
+    pro:      { name: 'PRO',      desc: '무제한 · 최대 20장 · 브랜드 커스텀', price: '19,900원/월', color: '#c47a00' },
+  };
+
+  function showPlanSuggestModal(plan) {
+    const info = _PLAN_SUGGEST_INFO[plan];
+    if (!info) return;
+    document.getElementById('planSuggestTitle').textContent   = `${info.name} 플랜을 선택하셨네요!`;
+    document.getElementById('planSuggestName').textContent    = info.name;
+    document.getElementById('planSuggestName').style.color    = info.color;
+    document.getElementById('planSuggestDesc').textContent    = info.desc;
+    document.getElementById('planSuggestPrice').textContent   = info.price;
+    document.getElementById('planSuggestPrice').style.color   = info.color;
+    document.getElementById('planSuggestPayBtn').style.background = info.color;
+    document.getElementById('planSuggestModal')._plan         = plan;
+    document.getElementById('planSuggestModal').style.display = 'flex';
+  }
+
+  async function confirmPlanPayment() {
+    const plan = document.getElementById('planSuggestModal')._plan;
+    document.getElementById('planSuggestModal').style.display = 'none';
+    await upgradeTo(plan);
+  }
+
+  function dismissPlanSuggest() {
+    document.getElementById('planSuggestModal').style.display = 'none';
+  }
 
   function selectUpgradePlan(plan) {
     document.getElementById('upgradeRowStandard').classList.toggle('selected', plan === 'standard');
