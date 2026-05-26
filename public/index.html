@@ -1061,6 +1061,25 @@ body {
         Google로 시작하기
       </button>
     </div>
+
+    <!-- 이메일 인증 대기 화면 -->
+    <div id="emailConfirmForm" style="display:none;">
+      <div style="text-align:center;padding:8px 0 16px;">
+        <div style="font-size:38px;margin-bottom:14px;">📧</div>
+        <div style="font-size:17px;font-weight:800;margin-bottom:10px;">이메일을 확인해주세요!</div>
+        <div style="font-size:13px;color:#444;line-height:1.8;margin-bottom:6px;">
+          <span id="confirmEmailAddr" style="font-weight:700;color:#1a4ac8;"></span>으로<br>
+          인증 링크를 보냈어요.<br>
+          메일함을 확인하고 링크를 클릭하면<br>바로 시작할 수 있어요.
+        </div>
+        <div style="font-size:12px;color:#aaa;margin-bottom:22px;">(스팸함도 확인해보세요)</div>
+      </div>
+      <button class="auth-btn" onclick="doResendEmail()">메일 다시 보내기</button>
+      <div class="auth-err" id="resendErr" style="text-align:center;margin-top:10px;"></div>
+      <div style="margin-top:14px;text-align:center;">
+        <button style="background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;" onclick="backToLogin()">로그인으로 돌아가기</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2280,12 +2299,22 @@ function setLoading(on) {
 
   function showAuthTab(tab, btn) {
     document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('loginForm').style.display  = tab === 'login'  ? '' : 'none';
-    document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
-    document.getElementById('resetForm').style.display  = 'none';
-    document.getElementById('newPwForm').style.display  = 'none';
-    document.querySelector('.auth-tabs').style.display  = '';
+    if (btn) btn.classList.add('active');
+    document.getElementById('loginForm').style.display        = tab === 'login'  ? '' : 'none';
+    document.getElementById('signupForm').style.display       = tab === 'signup' ? '' : 'none';
+    document.getElementById('resetForm').style.display        = 'none';
+    document.getElementById('newPwForm').style.display        = 'none';
+    document.getElementById('emailConfirmForm').style.display = 'none';
+    document.querySelector('.auth-tabs').style.display        = '';
+  }
+
+  function backToLogin() {
+    document.getElementById('emailConfirmForm').style.display = 'none';
+    document.getElementById('signupForm').style.display       = 'none';
+    document.getElementById('loginForm').style.display        = '';
+    document.querySelector('.auth-tabs').style.display        = '';
+    const tabs = document.querySelectorAll('.auth-tab');
+    tabs.forEach((b, i) => b.classList.toggle('active', i === 0));
   }
 
   function showResetForm() {
@@ -2390,13 +2419,41 @@ function setLoading(on) {
       const { data, error } = await sb.auth.signUp({ email, password: pw });
       if (error) { err.textContent = error.message; return; }
       if (data.user && !data.session) {
-        err.style.color = '#27ae60';
-        err.textContent = '✓ 이메일을 확인해주세요. 인증 링크를 보내드렸어요.';
+        // 이메일 인증 대기 화면으로 전환
+        window._pendingSignupEmail = email;
+        document.getElementById('signupForm').style.display       = 'none';
+        document.querySelector('.auth-tabs').style.display        = 'none';
+        document.getElementById('confirmEmailAddr').textContent   = email;
+        document.getElementById('resendErr').textContent          = '';
+        document.getElementById('emailConfirmForm').style.display = '';
         return;
       }
       if (data.session) await loadUserProfile(data.session.access_token);
     } catch(e) { err.textContent = '오류가 발생했어요. 다시 시도해주세요.'; }
     finally { setAuthLoading('signupForm', false); }
+  }
+
+  async function doResendEmail() {
+    const email = window._pendingSignupEmail;
+    const err   = document.getElementById('resendErr');
+    if (!email) return;
+    err.textContent = '';
+    err.style.color = '#e84040';
+    const btn = document.querySelector('#emailConfirmForm .auth-btn');
+    btn.textContent = '전송 중...';
+    btn.disabled = true;
+    try {
+      const { error } = await sb.auth.resend({ type: 'signup', email });
+      if (error) { err.textContent = error.message; return; }
+      err.style.color = '#27ae60';
+      err.textContent = '✓ 메일을 다시 보냈어요!';
+      setTimeout(() => { err.textContent = ''; }, 3000);
+    } catch(e) {
+      err.textContent = '다시 시도해주세요.';
+    } finally {
+      btn.textContent = '메일 다시 보내기';
+      btn.disabled = false;
+    }
   }
 
   async function loadUserProfile(token) {
