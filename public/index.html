@@ -1452,11 +1452,8 @@ body {
       </div>
     </div>
 
-    <!-- 업그레이드 버튼 -->
-    <button id="planModalUpgradeBtn" onclick="closePlanModal();openUpgradeModal();" style="display:none;width:100%;padding:13px;background:#1a4ac8;color:#fff;border:none;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;"></button>
-
-    <!-- 구독 해지 버튼 -->
-    <button id="planModalCancelBtn" onclick="confirmCancelSubscription()" style="display:none;width:100%;padding:11px;background:#fff;color:#e84040;border:1.5px solid #e84040;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;">구독 해지</button>
+    <!-- 동적 액션 버튼 -->
+    <div id="planModalActions"></div>
 
     <button onclick="closePlanModal()" style="width:100%;padding:11px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;cursor:pointer;color:var(--muted);">닫기</button>
   </div>
@@ -2638,20 +2635,22 @@ function setLoading(on) {
       subInfo.style.display = 'none';
     }
 
-    // 업그레이드 버튼
-    const upgradeBtn = document.getElementById('planModalUpgradeBtn');
+    // 동적 버튼 생성
+    const btnStyle = 'width:100%;padding:13px;border:none;border-radius:8px;font-family:\'Noto Sans KR\',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;';
+    const outlineStyle = 'width:100%;padding:11px;border-radius:8px;font-family:\'Noto Sans KR\',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;';
+    const actions = document.getElementById('planModalActions');
+    actions.innerHTML = '';
     if (plan === 'free') {
-      upgradeBtn.textContent   = '업그레이드하기';
-      upgradeBtn.style.display = '';
+      actions.innerHTML = `<button onclick="closePlanModal();openUpgradeModal();" style="${btnStyle}background:#1a4ac8;color:#fff;">업그레이드하기</button>`;
     } else if (plan === 'standard') {
-      upgradeBtn.textContent   = 'PRO로 업그레이드';
-      upgradeBtn.style.display = '';
-    } else {
-      upgradeBtn.style.display = 'none';
+      actions.innerHTML =
+        `<button onclick="closePlanModal();openUpgradeModal();" style="${btnStyle}background:#1a4ac8;color:#fff;">PRO로 업그레이드</button>` +
+        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">무료로 다운그레이드</button>`;
+    } else if (plan === 'pro') {
+      actions.innerHTML =
+        `<button onclick="confirmDowngrade('standard')" style="${btnStyle}background:#1a4ac8;color:#fff;">스탠다드로 다운그레이드</button>` +
+        `<button onclick="confirmDowngrade('free')" style="${outlineStyle}background:#fff;color:#e84040;border:1.5px solid #e84040;">무료로 다운그레이드</button>`;
     }
-
-    // 해지 버튼
-    document.getElementById('planModalCancelBtn').style.display = isPaid ? '' : 'none';
 
     document.getElementById('planModal').style.display = 'flex';
   }
@@ -2673,6 +2672,24 @@ function setLoading(on) {
       showPaymentToast('success', '✅ 구독이 해지됐어요. 무료 플랜으로 변경됐습니다.');
     } catch {
       showPaymentToast('fail', '❌ 해지 중 오류가 발생했어요. 다시 시도해주세요.');
+    }
+  }
+
+  async function confirmDowngrade(targetPlan) {
+    const planNames = { free:'무료 플랜', standard:'스탠다드 플랜' };
+    if (!confirm(`${planNames[targetPlan]}으로 다운그레이드하시겠어요?\n즉시 적용되며 이전 플랜으로의 복구는 별도 결제가 필요합니다.`)) return;
+    closePlanModal();
+    try {
+      const res = await fetch('/api/downgrade-plan', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + currentUser.token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetPlan })
+      });
+      if (!res.ok) throw new Error();
+      await loadUserProfile(currentUser.token);
+      showPaymentToast('success', `✅ ${planNames[targetPlan]}으로 변경됐습니다.`);
+    } catch {
+      showPaymentToast('fail', '❌ 플랜 변경 중 오류가 발생했어요. 다시 시도해주세요.');
     }
   }
 
